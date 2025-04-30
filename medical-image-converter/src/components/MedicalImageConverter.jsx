@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Upload, ArrowRight, RefreshCw } from 'lucide-react';
 
 const MedicalImageConverter = () => {
-  const [conversionType, setConversionType] = useState('mri-to-ct');
+  const [conversionType, setConversionType] = useState('t1-to-t2');
   const [inputImage, setInputImage] = useState(null);
   const [outputImage, setOutputImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -20,10 +20,16 @@ const MedicalImageConverter = () => {
     nothing: 0
   };
   
+  // const conversionOptions = [
+  //   { value: 'mri-to-ct', label: 'MRI → CT' },
+  //   { value: 'ct-to-mri', label: 'CT → MRI' },
+  //   { value: 'pd-to-t2', label: 'PD → T2' }
+  // ];
   const conversionOptions = [
-    { value: 'mri-to-ct', label: 'MRI → CT' },
-    { value: 'ct-to-mri', label: 'CT → MRI' }
+    { value: 't1-to-t2',   label: 'T1 → T2'   },
+    { value: 'pd-to-t2',   label: 'PD → T2'   }
   ];
+  
   
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -61,42 +67,87 @@ const MedicalImageConverter = () => {
       fileReader.readAsDataURL(file);
     }
   };
-  
   const handleConversion = async () => {
     if (!inputImage) {
       setError('Please upload an image first');
       return;
     }
-    
+  
     setIsLoading(true);
     setError(null);
-    
+  
     try {
-      // Create form data
       const formData = new FormData();
       formData.append('image', inputImage);
       formData.append('conversionType', conversionType);
       
-      // Send to backend API
-      const response = await fetch('http://localhost:5000/api/convert', {
+      const response = await fetch('http://localhost:5000/api/convert/', {
         method: 'POST',
         body: formData
       });
-      
+  
+      // grab text so we can debug
+      const text = await response.text();
+      console.log('raw response:', response.status, text);
+  
       if (!response.ok) {
-        throw new Error('Conversion process failed');
+        // try parsing JSON error, otherwise show raw text
+        let msg;
+        try {
+          msg = JSON.parse(text).error;
+        } catch {
+          msg = text;
+        }
+        throw new Error(msg || 'Conversion process failed');
       }
-      
-      const data = await response.json();
+  
+      const data = JSON.parse(text);
       setOutputImage(data.result);
-      
+  
     } catch (err) {
-      console.error('Error during conversion:', err);
-      setError(err.message || 'Conversion process failed');
+      console.error(err);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
+  
+  
+  // const handleConversion = async () => {
+  //   if (!inputImage) {
+  //     setError('Please upload an image first');
+  //     return;
+  //   }
+    
+  //   setIsLoading(true);
+  //   setError(null);
+    
+  //   try {
+  //     // Create form data
+  //     const formData = new FormData();
+  //     formData.append('image', inputImage);
+  //     formData.append('conversionType', conversionType);
+      
+  //     // Send to backend API
+  //     const response = await fetch('http://localhost:5000/api/convert', {
+  //       method: 'POST',
+  //       body: formData
+  //     });
+      
+  //     if (!response.ok) {
+  //       throw new Error('Conversion process failed');
+  //     }
+      
+  //     const data = await response.json();
+  //     setOutputImage(data.result);
+      
+  //   } catch (err) {
+  //     console.error('Error during conversion:', err);
+  //     setError(err.message || 'Conversion process failed');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   // For demo purposes, we simulate conversion without real API call
   const handleDemoConversion = () => {
@@ -148,12 +199,24 @@ const MedicalImageConverter = () => {
               />
             </label>
             
-            <button 
+            {/* <button 
               className="flex items-center justify-center px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleDemoConversion}
               disabled={!inputImage || isLoading}
             >
+            
               {isLoading ? <RefreshCw size={18} className="mr-2 animate-spin" /> : <ArrowRight size={18} className="mr-2" />}
+              Convert
+            </button> */}
+            <button 
+              className="flex items-center justify-center px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleConversion}            // ← CALL REAL API INSTEAD
+              disabled={!inputImage || isLoading}
+            >
+              {isLoading 
+                ? <RefreshCw size={18} className="mr-2 animate-spin" /> 
+                : <ArrowRight size={18} className="mr-2" />
+              }
               Convert
             </button>
           </div>
