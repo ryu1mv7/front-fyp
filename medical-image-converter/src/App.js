@@ -5,6 +5,7 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import MedicalImageConverter from './components/MedicalImageConverter';
 import Settings from './components/Settings';
+import ForgotPassword from './components/ForgotPassword';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/settings" element={
             <PrivateRoute>
               <Settings />

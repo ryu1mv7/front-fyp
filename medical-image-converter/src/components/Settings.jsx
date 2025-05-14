@@ -87,7 +87,7 @@ const Settings = () => {
             onClick={handleBack}
             className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded"
           >
-            Back to Dashboard
+            Back to Main Page
           </button>
         </div>
         

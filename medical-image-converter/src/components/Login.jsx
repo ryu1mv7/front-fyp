@@ -1,6 +1,6 @@
-// ログイン画面
+// Login Screen
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
@@ -74,6 +74,12 @@ export default function Login() {
             </div>
           </div>
 
+          <div className="flex items-center justify-end">
+            <Link to="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300">
+              Forgot your password?
+            </Link>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -86,9 +92,9 @@ export default function Login() {
         <div className="text-center mt-4">
           <p className="text-sm text-gray-400">
             Need an account?{" "}
-            <a href="/signup" className="text-blue-400 hover:text-blue-300">
+            <Link to="/signup" className="text-blue-400 hover:text-blue-300">
               Sign up
-            </a>
+            </Link>
           </p>
         </div>
       </div>

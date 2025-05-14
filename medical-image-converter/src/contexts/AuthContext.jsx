@@ -1,6 +1,14 @@
-// 認証コンテキスト
+// Authentication Context
 import { createContext, useContext, useEffect, useState } from 'react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged, 
+  sendPasswordResetEmail,
+  updateEmail as firebaseUpdateEmail,
+  updatePassword as firebaseUpdatePassword
+} from 'firebase/auth';
 import { auth } from '../firebase';
 
 const AuthContext = createContext();
@@ -25,6 +33,18 @@ export function AuthProvider({ children }) {
     return signOut(auth);
   }
 
+  function resetPassword(email) {
+    return sendPasswordResetEmail(auth, email);
+  }
+
+  function updateEmail(email) {
+    return firebaseUpdateEmail(currentUser, email);
+  }
+
+  function updatePassword(password) {
+    return firebaseUpdatePassword(currentUser, password);
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -37,7 +57,10 @@ export function AuthProvider({ children }) {
     currentUser,
     login,
     signup,
-    logout
+    logout,
+    resetPassword,
+    updateEmail,
+    updatePassword
   };
 
   return (
