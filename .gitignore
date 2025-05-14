@@ -1,0 +1,32 @@
+# ---- Python/Django ----
+core/djangotest/          
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+
+# Django migration files
+**/migrations/__pycache__/
+**/migrations/*.pyc
+
+# VSCode settings (optional)
+.vscode/
+
+# ---- Node/React (frontend) ----
+medical-image-converter/node_modules/
+medical-image-converter/build/
+medical-image-converter/.env
+medical-image-converter/.DS_Store
+
+# ---- General ----
+.env
+*.env
+*.DS_Store
+*.log
+*.bak
+*.swp
+.idea/
