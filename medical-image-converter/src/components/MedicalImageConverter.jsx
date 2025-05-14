@@ -61,6 +61,15 @@ const MedicalImageConverter = () => {
       processingTime: "1.3 seconds",
       modelType: "Pix2Pix",
       epochs: "60"
+    },
+    'ixi-brain-seg': {
+      ssim: 0,
+      psnr: 0,
+      mse: 0,
+      lpips: 0,
+      processingTime: 'N/A',
+      modelType: 'U-Net',
+      epochs: 'N/A'
     }
   };
 
@@ -70,14 +79,16 @@ const MedicalImageConverter = () => {
     { value: 't1-to-t2', label: 'T1 → T2: Single-Modality MRI Synthesis' },
     { value: 'pd-to-t2', label: 'PD → T2: Proton Density to T2 Conversion' },
     { value: 'brats-t2f-seg', label: 'T1N/T1C/T2W → T2-FLAIR/Seg: Multi-Modal Brain Synthesis' },
-    { value: 'mri-to-ct', label: 'MRI → CT: Cross-Modality Translation (Pix2Pix)' }
+    { value: 'mri-to-ct', label: 'MRI → CT: Cross-Modality Translation (Pix2Pix)' },
+    { value: 'ixi-brain-seg', label: 'T1 → Segmentation: IXI Brain Tissue Map' }
   ];
 
   const modelDescriptions = {
     't1-to-t2': "Generates a synthetic T2-weighted MRI from a T1-normal input using a U-Net-based GAN.",
     'pd-to-t2': "Synthesizes a T2-weighted MRI from Proton Density input using a modified U-Net architecture.",
     'brats-t2f-seg': "Produces a synthetic T2-FLAIR and a brain anomaly segmentation map from T1N, T1C, and T2W inputs.",
-    'mri-to-ct': "Translates MRI scans into synthetic CT using a Pix2Pix CGAN."
+    'mri-to-ct': "Translates MRI scans into synthetic CT using a Pix2Pix CGAN.",
+    'ixi-brain-seg': "Segments brain tissue into CSF, Gray Matter, and White Matter using the IXI dataset model.",
   };
 
   // File handling
@@ -118,13 +129,17 @@ const MedicalImageConverter = () => {
       const endpoint = inputFormat === 'nii' ? '/api/convert_nii/' : '/api/convert/';
 
       if (inputFormat === 'nii') {
-        Object.values(modalities).forEach(file => formData.append('image', file));
+        const niiFilesToUpload = conversionType === 'ixi-brain-seg'
+          ? [modalities['t1']]
+          : Object.values(modalities);
+
+        niiFilesToUpload.forEach(file => file && formData.append('image', file));
       } else {
         formData.append('image', inputImage);
       }
-      
+
       formData.append('conversionType', conversionType);
-      
+
       const response = await fetch(`http://localhost:5000${endpoint}`, {
         method: 'POST',
         body: formData
@@ -132,7 +147,7 @@ const MedicalImageConverter = () => {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Conversion failed');
-      
+
       setOutputImage({
         t2f: data.result.t2f || data.result,
         seg: data.result.seg || null
@@ -281,9 +296,28 @@ const MedicalImageConverter = () => {
           <input type="file" accept=".jpg,.jpeg,.png" onChange={handleFileUpload} className="mb-4" />
         )}
         {inputFormat === 'nii' && (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-              {modalityList.map(modality => (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            {conversionType === 'ixi-brain-seg' ? (
+              <div className="bg-gray-800 p-4 rounded text-center">
+                <p className="mb-2 font-semibold">T1</p>
+                <input
+                  type="file"
+                  accept=".nii,.nii.gz"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setModalities({ t1: file });  // override all others
+                      setOutputImage({ t2f: null, seg: null });
+                    }
+                  }}
+                  className="text-sm text-gray-300"
+                />
+                <p className="text-sm text-gray-400 mt-2">
+                  {modalities['t1']?.name || 'Not assigned'}
+                </p>
+              </div>
+            ) : (
+              modalityList.map(modality => (
                 <div key={modality} className="bg-gray-800 p-4 rounded text-center">
                   <p className="mb-2 font-semibold">{modality}</p>
                   <input
@@ -302,9 +336,9 @@ const MedicalImageConverter = () => {
                     {modalities[modality]?.name || 'Not assigned'}
                   </p>
                 </div>
-              ))}
-            </div>
-          </>
+              ))
+            )}
+          </div>
         )}
 
         <button onClick={handleConversion} disabled={isLoading} className="bg-green-600 px-4 py-2 rounded">
@@ -346,12 +380,6 @@ const MedicalImageConverter = () => {
               onClick={() => setActiveTab('metrics')}
             >
               Metrics
-            </button>
-            <button
-              className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'brain-seg' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-              onClick={() => setActiveTab('brain-seg')}
-            >
-              Brain Segmentation
             </button>
             <button
               className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'histogram' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}

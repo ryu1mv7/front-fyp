@@ -117,51 +117,91 @@ class ConvertNiftiView(APIView):
             model = brain_seg_model
         else:
             model = MODEL_MAP.get(conv)
+
         if not model:
             return Response({'error': 'Invalid conversion type'}, status=400)
 
         try:
-            file_map = {f.name.lower(): f for f in nii_files}
-            modalities = ['t1n', 't1c', 't2w']
-            images = []
+            if conv == 'ixi-brain-seg':
+                # Handle single-modality T1 segmentation
+                file = next((f for f in nii_files if 't1' in f.name.lower() and 't1c' not in f.name.lower()), None)
+                if not file:
+                    return Response({'error': 'No valid T1 NIfTI file found for brain segmentation'}, status=400)
 
-            for key in modalities:
-                file = next((f for name, f in file_map.items() if key in name), None)
-                if file:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".nii") as tmp:
-                        for chunk in file.chunks():
-                            tmp.write(chunk)
-                        tmp_path = tmp.name
-                    nii = nib.load(tmp_path)
-                    data = nii.get_fdata()
-                    mid_slice = data[:, :, data.shape[2] // 2]
-                    norm = (mid_slice - np.min(mid_slice)) / (np.max(mid_slice) - np.min(mid_slice))
-                    image = Image.fromarray((norm * 255).astype(np.uint8)).convert('L')
-                    images.append(preprocess(image))  # shape: [1, H, W]
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".nii") as tmp:
+                    for chunk in file.chunks():
+                        tmp.write(chunk)
+                    tmp_path = tmp.name
 
-            if not images:
-                return Response({'error': 'No valid input modalities were found'}, status=400)
+                nii = nib.load(tmp_path)
+                data = nii.get_fdata()
+                mid_slice = data[:, :, data.shape[2] // 2]
 
-            input_tensor = torch.cat(images, dim=0)  # shape: [C, H, W]
-            input_tensor = input_tensor.unsqueeze(0)  # shape: [1, C, H, W]
+                norm = (mid_slice - np.min(mid_slice)) / (np.max(mid_slice) - np.min(mid_slice) + 1e-8)
+                image = Image.fromarray((norm * 255).astype(np.uint8)).convert('L')
+                image = image.resize((1024, 1024))  # match model input
+                tensor = transforms.ToTensor()(image)
+                tensor = transforms.Normalize([0.5], [0.5])(tensor)
+                input_tensor = tensor.unsqueeze(0)  # shape: [1, 1, H, W]
 
-            with torch.no_grad():
-                out = model(input_tensor)
-                out_t2f = out[0] if isinstance(out, (list, tuple)) else out
-                out_seg = out[1] if isinstance(out, (list, tuple)) and len(out) > 1 else out_t2f
+                with torch.no_grad():
+                    out = model(input_tensor)
+                    out_seg = out.argmax(dim=1).squeeze().cpu().numpy()  # [H, W]
 
-            def encode(tensor):
-                image = postprocess(tensor.squeeze(0).cpu().clamp(-1, 1))
+                result_img = Image.fromarray((out_seg * 85).astype(np.uint8))  # 0, 85, 170
                 buf = io.BytesIO()
-                image.save(buf, format='JPEG')
-                return base64.b64encode(buf.getvalue()).decode()
+                result_img.save(buf, format='JPEG')
+                encoded = base64.b64encode(buf.getvalue()).decode()
 
-            return Response({
-                'result': {
-                    't2f': f"data:image/jpeg;base64,{encode(out_t2f)}",
-                    'seg': f"data:image/jpeg;base64,{encode(out_seg)}"
-                }
-            })
+                return Response({
+                    'result': {
+                        't2f': None,
+                        'seg': f"data:image/jpeg;base64,{encoded}"
+                    }
+                })
+
+            else:
+                # Multi-modal synthesis (e.g. brats-t2f-seg)
+                file_map = {f.name.lower(): f for f in nii_files}
+                modalities = ['t1n', 't1c', 't2w']
+                images = []
+
+                for key in modalities:
+                    file = next((f for name, f in file_map.items() if key in name), None)
+                    if file:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".nii") as tmp:
+                            for chunk in file.chunks():
+                                tmp.write(chunk)
+                            tmp_path = tmp.name
+                        nii = nib.load(tmp_path)
+                        data = nii.get_fdata()
+                        mid_slice = data[:, :, data.shape[2] // 2]
+                        norm = (mid_slice - np.min(mid_slice)) / (np.max(mid_slice) - np.min(mid_slice))
+                        image = Image.fromarray((norm * 255).astype(np.uint8)).convert('L')
+                        images.append(preprocess(image))
+
+                if not images:
+                    return Response({'error': 'No valid input modalities were found'}, status=400)
+
+                input_tensor = torch.cat(images, dim=0).unsqueeze(0)  # [1, C, H, W]
+
+                with torch.no_grad():
+                    out = model(input_tensor)
+                    out_t2f = out[0] if isinstance(out, (list, tuple)) else out
+                    out_seg = out[1] if isinstance(out, (list, tuple)) and len(out) > 1 else out_t2f
+
+                def encode(tensor):
+                    image = postprocess(tensor.squeeze(0).cpu().clamp(-1, 1))
+                    buf = io.BytesIO()
+                    image.save(buf, format='JPEG')
+                    return base64.b64encode(buf.getvalue()).decode()
+
+                return Response({
+                    'result': {
+                        't2f': f"data:image/jpeg;base64,{encode(out_t2f)}",
+                        'seg': f"data:image/jpeg;base64,{encode(out_seg)}"
+                    }
+                })
 
         except Exception as e:
             return Response({'error': str(e)}, status=500)
