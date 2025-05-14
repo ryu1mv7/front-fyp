@@ -154,9 +154,7 @@ const MedicalImageConverter = () => {
         <div className="relative">
           <div 
             className="flex items-center cursor-pointer" 
-            onClick={toggleDropdown}
             onMouseEnter={() => setShowDropdown(true)}
-            onMouseLeave={() => setShowDropdown(false)}
           >
             <span className="mr-2 text-gray-400">{currentUser?.email}</span>
             <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
@@ -168,7 +166,11 @@ const MedicalImageConverter = () => {
           
           {/* ドロップダウンメニュー */}
           {showDropdown && (
-            <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-md shadow-lg z-10">
+            <div 
+              className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-md shadow-lg z-10"
+              onMouseEnter={() => setShowDropdown(true)}
+              onMouseLeave={() => setShowDropdown(false)}
+            >
               <div className="p-4 flex flex-col items-center border-b border-gray-700">
                 <div className="w-16 h-16 mb-2 bg-gray-700 rounded-full flex items-center justify-center">
                   <span className="text-2xl font-bold">
