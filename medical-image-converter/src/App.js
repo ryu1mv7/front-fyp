@@ -4,6 +4,7 @@ import PrivateRoute from './components/PrivateRoute';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import MedicalImageConverter from './components/MedicalImageConverter';
+import Settings from './components/Settings';
 
 function App() {
   return (
@@ -12,6 +13,11 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/settings" element={
+            <PrivateRoute>
+              <Settings />
+            </PrivateRoute>
+          } />
           <Route path="/" element={
             <PrivateRoute>
               <MedicalImageConverter />

@@ -122,49 +122,33 @@ const MedicalImageConverter = () => {
       setError('Failed to log out');
     }
   };
-
-  const toggleDropdown = () => {
-    setShowDropdown(!showDropdown);
-  };
-  
-  // For demo purposes, we simulate conversion without real API call
-  const handleDemoConversion = () => {
-    if (!inputImage) {
-      setError('Please upload an image first');
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    
-    // Simulate API delay
-    setTimeout(() => {
-      setOutputImage(previewUrl); // For demo, just use the same image
-      setIsLoading(false);
-    }, 2000);
-  };
   
   return (
     <div className="flex flex-col items-center p-6 bg-gray-900 text-white min-h-screen">
-      {/* ナビゲーションバー */}
+      {/* Navigation Bar */}
       <div className="w-full bg-gray-800 p-4 flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold">Medical Image Converter</h1>
         
-        {/* ユーザー情報とドロップダウン */}
+        {/* User Info and Dropdown */}
         <div className="relative">
           <div 
             className="flex items-center cursor-pointer" 
             onMouseEnter={() => setShowDropdown(true)}
           >
-            <span className="mr-2 text-gray-400">{currentUser?.email}</span>
+            <span className="mr-2 text-gray-400">{currentUser?.displayName || currentUser?.email}</span>
             <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
               <span className="text-lg font-semibold">
-                {currentUser?.email ? currentUser.email[0].toUpperCase() : 'U'}
+                {currentUser?.displayName 
+                  ? currentUser.displayName[0].toUpperCase() 
+                  : currentUser?.email 
+                    ? currentUser.email[0].toUpperCase() 
+                    : 'U'
+                }
               </span>
             </div>
           </div>
           
-          {/* ドロップダウンメニュー */}
+          {/* Dropdown Menu */}
           {showDropdown && (
             <div 
               className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-md shadow-lg z-10"
@@ -174,10 +158,15 @@ const MedicalImageConverter = () => {
               <div className="p-4 flex flex-col items-center border-b border-gray-700">
                 <div className="w-16 h-16 mb-2 bg-gray-700 rounded-full flex items-center justify-center">
                   <span className="text-2xl font-bold">
-                    {currentUser?.email ? currentUser.email[0].toUpperCase() : 'U'}
+                    {currentUser?.displayName 
+                      ? currentUser.displayName[0].toUpperCase() 
+                      : currentUser?.email 
+                        ? currentUser.email[0].toUpperCase() 
+                        : 'U'
+                    }
                   </span>
                 </div>
-                <span className="font-medium">User</span>
+                <span className="font-medium">{currentUser?.displayName || "User"}</span>
                 <span className="text-sm text-gray-400 text-center">{currentUser?.email}</span>
               </div>
               
@@ -188,7 +177,10 @@ const MedicalImageConverter = () => {
                 <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
                   History
                 </button>
-                <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
+                <button 
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                  onClick={() => navigate('/settings')}
+                >
                   Settings
                 </button>
               </div>
