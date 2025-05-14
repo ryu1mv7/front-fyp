@@ -15,16 +15,11 @@ const MedicalImageConverter = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  // const [metrics, setMetrics] = useState(null);
+  const [metrics, setMetrics] = useState(null);
 
-  // Dummy metrics data - would come from backend in real implementation
-  const metricsData = {
-    ssim: outputImage ? 0.9663 : null,
-    psnr: outputImage ? 37.14 : null,
-    mse: outputImage ? 0.0031 : null,
-    processingTime: outputImage ? "1.2 seconds" : null,
-    modelType: "cGAN",
-    nothing: 0
-  };
+
   
   const conversionOptions = [
     { value: 't1-to-t2',   label: 'T1 → T2'   },
@@ -105,6 +100,13 @@ const MedicalImageConverter = () => {
   
       const data = JSON.parse(text);
       setOutputImage(data.result);
+
+      setMetrics({
+        ssim:  data.metrics.ssim,
+        psnr:  data.metrics.psnr,
+        lpips: data.metrics.lpips,
+      });
+
   
     } catch (err) {
       console.error(err);
@@ -329,37 +331,50 @@ const MedicalImageConverter = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-gray-800 p-4 rounded">
                   <h3 className="text-center text-gray-400 mb-1">SSIM</h3>
-                  <p className="text-center text-2xl font-bold">{metricsData.ssim !== null ? metricsData.ssim.toFixed(4) : "0.88"}</p>
+                  <p className="text-center text-2xl font-bold">
+                    {metrics ? metrics.ssim.toFixed(4) : '–'}
+                  </p>
                   <p className="text-center text-xs text-gray-500">Structural Similarity</p>
                 </div>
                 
                 <div className="bg-gray-800 p-4 rounded">
                   <h3 className="text-center text-gray-400 mb-1">PSNR</h3>
-                  <p className="text-center text-2xl font-bold">{metricsData.psnr !== null ? metricsData.psnr.toFixed(2) + " dB" : "28db"}</p>
+                  <p className="text-center text-2xl font-bold">
+                    {metrics ? `${metrics.psnr.toFixed(2)} dB` : '–'}
+                  </p>
                   <p className="text-center text-xs text-gray-500">Peak Signal-to-Noise Ratio</p>
                 </div>
+
                 
                 <div className="bg-gray-800 p-4 rounded">
                   <h3 className="text-center text-gray-400 mb-1">MSE</h3>
-                  <p className="text-center text-2xl font-bold">{metricsData.mse !== null ? metricsData.mse.toFixed(4) : "0.005"}</p>
+                  {/* <p className="text-center text-2xl font-bold">{metricsData.mse !== null ? metricsData.mse.toFixed(4) : "0.005"}</p> */}
                   <p className="text-center text-xs text-gray-500">Mean Squared Error</p>
                 </div>
                 
                 <div className="bg-gray-800 p-4 rounded">
                   <h3 className="text-center text-gray-400 mb-1">Model</h3>
-                  <p className="text-center text-xl font-bold">{metricsData.modelType}</p>
+                  {/* <p className="text-center text-xl font-bold">{metricsData.modelType}</p> */}
                   <p className="text-center text-xs text-gray-500">Architecture</p>
                 </div>
                 
                 <div className="bg-gray-800 p-4 rounded">
-                  <h3 className="text-center text-gray-400 mb-1">TBD</h3>
-                  <p className="text-center text-xl font-bold">{metricsData.epochs}</p>
-                  <p className="text-center text-xs text-gray-500">TBD</p>
+                  <h3 className="text-center text-gray-400 mb-1">LPIPS</h3>
+                  <p className="text-center text-2xl font-bold">
+                    {metrics?.lpips != null
+                      ? metrics.lpips.toFixed(4)
+                      : '–'
+                    }
+                  </p>
+                  <p className="text-center text-xs text-gray-500">
+                    Learned Perceptual Image Patch Similarity
+                  </p>
                 </div>
-                
+
+                                
                 <div className="bg-gray-800 p-4 rounded">
                   <h3 className="text-center text-gray-400 mb-1">Processing Time</h3>
-                  <p className="text-center text-xl font-bold">{metricsData.processingTime || "2.36s"}</p>
+                  {/* <p className="text-center text-xl font-bold">{metricsData.processingTime || "2.36s"}</p> */}
                   <p className="text-center text-xs text-gray-500">Conversion Duration</p>
                 </div>
               </div>
