@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Upload, ArrowRight, RefreshCw } from 'lucide-react';
+//for firebase
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const MedicalImageConverter = () => {
   const [conversionType, setConversionType] = useState('t1-to-t2');
@@ -9,6 +12,9 @@ const MedicalImageConverter = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('metrics');
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // Dummy metrics data - would come from backend in real implementation
   const metricsData = {
@@ -20,11 +26,6 @@ const MedicalImageConverter = () => {
     nothing: 0
   };
   
-  // const conversionOptions = [
-  //   { value: 'mri-to-ct', label: 'MRI → CT' },
-  //   { value: 'ct-to-mri', label: 'CT → MRI' },
-  //   { value: 'pd-to-t2', label: 'PD → T2' }
-  // ];
   const conversionOptions = [
     { value: 't1-to-t2',   label: 'T1 → T2'   },
     { value: 'pd-to-t2',   label: 'PD → T2'   }
@@ -67,6 +68,7 @@ const MedicalImageConverter = () => {
       fileReader.readAsDataURL(file);
     }
   };
+  
   const handleConversion = async () => {
     if (!inputImage) {
       setError('Please upload an image first');
@@ -111,44 +113,20 @@ const MedicalImageConverter = () => {
       setIsLoading(false);
     }
   };
-  
-  
-  // const handleConversion = async () => {
-  //   if (!inputImage) {
-  //     setError('Please upload an image first');
-  //     return;
-  //   }
-    
-  //   setIsLoading(true);
-  //   setError(null);
-    
-  //   try {
-  //     // Create form data
-  //     const formData = new FormData();
-  //     formData.append('image', inputImage);
-  //     formData.append('conversionType', conversionType);
-      
-  //     // Send to backend API
-  //     const response = await fetch('http://localhost:5000/api/convert', {
-  //       method: 'POST',
-  //       body: formData
-  //     });
-      
-  //     if (!response.ok) {
-  //       throw new Error('Conversion process failed');
-  //     }
-      
-  //     const data = await response.json();
-  //     setOutputImage(data.result);
-      
-  //   } catch (err) {
-  //     console.error('Error during conversion:', err);
-  //     setError(err.message || 'Conversion process failed');
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      setError('Failed to log out');
+    }
+  };
+
+  const toggleDropdown = () => {
+    setShowDropdown(!showDropdown);
+  };
+  
   // For demo purposes, we simulate conversion without real API call
   const handleDemoConversion = () => {
     if (!inputImage) {
@@ -168,9 +146,67 @@ const MedicalImageConverter = () => {
   
   return (
     <div className="flex flex-col items-center p-6 bg-gray-900 text-white min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">Multi-modal Medical Image Synthesis and Translation</h1>
-      
+      {/* ナビゲーションバー */}
+      <div className="w-full bg-gray-800 p-4 flex justify-between items-center mb-6">
+        <h1 className="text-xl font-bold">Medical Image Converter</h1>
+        
+        {/* ユーザー情報とドロップダウン */}
+        <div className="relative">
+          <div 
+            className="flex items-center cursor-pointer" 
+            onClick={toggleDropdown}
+            onMouseEnter={() => setShowDropdown(true)}
+            onMouseLeave={() => setShowDropdown(false)}
+          >
+            <span className="mr-2 text-gray-400">{currentUser?.email}</span>
+            <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
+              <span className="text-lg font-semibold">
+                {currentUser?.email ? currentUser.email[0].toUpperCase() : 'U'}
+              </span>
+            </div>
+          </div>
+          
+          {/* ドロップダウンメニュー */}
+          {showDropdown && (
+            <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-md shadow-lg z-10">
+              <div className="p-4 flex flex-col items-center border-b border-gray-700">
+                <div className="w-16 h-16 mb-2 bg-gray-700 rounded-full flex items-center justify-center">
+                  <span className="text-2xl font-bold">
+                    {currentUser?.email ? currentUser.email[0].toUpperCase() : 'U'}
+                  </span>
+                </div>
+                <span className="font-medium">User</span>
+                <span className="text-sm text-gray-400 text-center">{currentUser?.email}</span>
+              </div>
+              
+              <div className="py-1">
+                <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
+                  Dashboard
+                </button>
+                <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
+                  History
+                </button>
+                <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
+                  Settings
+                </button>
+              </div>
+              
+              <div className="border-t border-gray-700 py-1">
+                <button 
+                  className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="w-full max-w-4xl bg-gray-800 rounded-lg p-6 shadow-lg">
+        <h2 className="text-xl font-bold mb-6">Multi-modal Medical Image Synthesis and Translation</h2>
+        
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1">
             <label className="block text-sm font-medium mb-2">Conversion Type</label>
@@ -199,18 +235,9 @@ const MedicalImageConverter = () => {
               />
             </label>
             
-            {/* <button 
-              className="flex items-center justify-center px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleDemoConversion}
-              disabled={!inputImage || isLoading}
-            >
-            
-              {isLoading ? <RefreshCw size={18} className="mr-2 animate-spin" /> : <ArrowRight size={18} className="mr-2" />}
-              Convert
-            </button> */}
             <button 
               className="flex items-center justify-center px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleConversion}            // ← CALL REAL API INSTEAD
+              onClick={handleConversion}
               disabled={!inputImage || isLoading}
             >
               {isLoading 
