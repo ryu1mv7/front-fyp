@@ -1,6 +1,6 @@
 # ---- Python/Django ----
 core/djangotest/          
-__pycache__/
+**/__pycache__/
 *.py[cod]
 *.sqlite3
 *.log
@@ -30,3 +30,6 @@ medical-image-converter/.DS_Store
 *.bak
 *.swp
 .idea/
+
+# Models downloaded from Hugging Face
+core/backend/models/
