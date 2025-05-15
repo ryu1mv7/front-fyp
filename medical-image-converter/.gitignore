@@ -21,3 +21,35 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# --- Added for Python ---
+# Bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+djangotest/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Large ML model files
+*.pth
+*.pt
+*.h5
+*.ckpt
+
+# Logs
+*.log
+
+# IDE/editor junk
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python build artifacts
+*.egg-info/
+dist/
+build/
