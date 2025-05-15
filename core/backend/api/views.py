@@ -16,7 +16,7 @@ from .networks import (
     preprocess, postprocess, BrainSegNet
 )
 
-# Initialize LPIPS metric (from general version)
+# Initialise LPIPS metric (from general version)
 lpips_fn = lpips.LPIPS(net='alex')  # or 'vgg' for alternative
 lpips_transform = transforms.Compose([
     transforms.Resize((256, 256)),
@@ -24,7 +24,7 @@ lpips_transform = transforms.Compose([
     transforms.Normalize([0.5]*3, [0.5]*3),
 ])
 
-# Model mapping (from your version)
+# Model mapping
 MODEL_MAP = {
     't1-to-t2': model_t1_t2,
     'pd-to-t2': model_pd2t2,
@@ -32,7 +32,7 @@ MODEL_MAP = {
     'mri-to-ct': model_mri2ct,
 }
 
-brain_seg_model = None  # Lazy-loaded BrainSegNet (from your version)
+brain_seg_model = None  # Lazy-loaded BrainSegNet
 
 class ConvertImageView(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -56,22 +56,25 @@ class ConvertImageView(APIView):
             return Response({'error': 'Invalid conversion type'}, status=400)
 
         try:
+            # Load input and run model
             img = Image.open(img_f).convert('L')
             inp = preprocess(img).unsqueeze(0)
-
             with torch.no_grad():
                 out = model(inp)
                 out_t2f = out[0] if isinstance(out, (list, tuple)) else out
                 out_seg = out[1] if isinstance(out, (list, tuple)) and len(out) > 1 else out_t2f
 
-            # Postprocess and encode (from your version)
+            # Generate output image for metrics
+            image = postprocess(out_t2f.squeeze(0).cpu().clamp(-1, 1))
+
+            # Encoder helper (uses its own variable to avoid shadowing)
             def encode(tensor):
-                image = postprocess(tensor.squeeze(0).cpu().clamp(-1, 1))
+                img_enc = postprocess(tensor.squeeze(0).cpu().clamp(-1, 1))
                 buf = io.BytesIO()
-                image.save(buf, format='JPEG')
+                img_enc.save(buf, format='JPEG')
                 return base64.b64encode(buf.getvalue()).decode()
 
-            # Compute metrics (from general version)
+            # Compute metrics
             img_f.seek(0)
             orig = Image.open(img_f).convert('L').resize(image.size)
             orig_np = np.asarray(orig, dtype=np.float32) / 255.0
@@ -86,19 +89,22 @@ class ConvertImageView(APIView):
             gen_t = lpips_transform(gen_rgb).unsqueeze(0)
             lpips_val = lpips_fn(orig_t, gen_t).item()
 
+            # Return encoded results + metrics
             return Response({
                 'result': {
                     't2f': f"data:image/jpeg;base64,{encode(out_t2f)}",
                     'seg': f"data:image/jpeg;base64,{encode(out_seg)}"
                 },
-                'metrics': {  # From general version
+                'metrics': {
                     'psnr': m_psnr,
                     'ssim': m_ssim,
                     'lpips': lpips_val,
                 }
             })
+
         except Exception as e:
             return Response({'error': str(e)}, status=500)
+
 
 class ConvertNiftiView(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -139,16 +145,16 @@ class ConvertNiftiView(APIView):
 
                 norm = (mid_slice - np.min(mid_slice)) / (np.max(mid_slice) - np.min(mid_slice) + 1e-8)
                 image = Image.fromarray((norm * 255).astype(np.uint8)).convert('L')
-                image = image.resize((1024, 1024))  # match model input
+                image = image.resize((1024, 1024))
                 tensor = transforms.ToTensor()(image)
                 tensor = transforms.Normalize([0.5], [0.5])(tensor)
-                input_tensor = tensor.unsqueeze(0)  # shape: [1, 1, H, W]
+                input_tensor = tensor.unsqueeze(0)
 
                 with torch.no_grad():
                     out = model(input_tensor)
-                    out_seg = out.argmax(dim=1).squeeze().cpu().numpy()  # [H, W]
+                    out_seg = out.argmax(dim=1).squeeze().cpu().numpy()
 
-                result_img = Image.fromarray((out_seg * 85).astype(np.uint8))  # 0, 85, 170
+                result_img = Image.fromarray((out_seg * 85).astype(np.uint8))
                 buf = io.BytesIO()
                 result_img.save(buf, format='JPEG')
                 encoded = base64.b64encode(buf.getvalue()).decode()
@@ -161,7 +167,7 @@ class ConvertNiftiView(APIView):
                 })
 
             else:
-                # Multi-modal synthesis (e.g. brats-t2f-seg)
+                # Multi-modal synthesis
                 file_map = {f.name.lower(): f for f in nii_files}
                 modalities = ['t1n', 't1c', 't2w']
                 images = []
@@ -183,7 +189,7 @@ class ConvertNiftiView(APIView):
                 if not images:
                     return Response({'error': 'No valid input modalities were found'}, status=400)
 
-                input_tensor = torch.cat(images, dim=0).unsqueeze(0)  # [1, C, H, W]
+                input_tensor = torch.cat(images, dim=0).unsqueeze(0)
 
                 with torch.no_grad():
                     out = model(input_tensor)
@@ -191,9 +197,9 @@ class ConvertNiftiView(APIView):
                     out_seg = out[1] if isinstance(out, (list, tuple)) and len(out) > 1 else out_t2f
 
                 def encode(tensor):
-                    image = postprocess(tensor.squeeze(0).cpu().clamp(-1, 1))
+                    image_enc = postprocess(tensor.squeeze(0).cpu().clamp(-1, 1))
                     buf = io.BytesIO()
-                    image.save(buf, format='JPEG')
+                    image_enc.save(buf, format='JPEG')
                     return base64.b64encode(buf.getvalue()).decode()
 
                 return Response({
@@ -206,11 +212,12 @@ class ConvertNiftiView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
+
 class ConvertBatchView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        files = request.FILES.getlist('images')  # 'images' is plural now
+        files = request.FILES.getlist('images')
         conv = request.data.get('conversionType')
 
         if not files or not conv:
@@ -234,7 +241,7 @@ class ConvertBatchView(APIView):
                 encoded = base64.b64encode(buf.getvalue()).decode()
                 outputs.append(f"data:image/jpeg;base64,{encoded}")
 
-            return Response({ 'results': outputs })
+            return Response({'results': outputs})
 
         except Exception as e:
             return Response({'error': str(e)}, status=500)
@@ -242,15 +249,16 @@ class ConvertBatchView(APIView):
 
 class BrainSegView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+
     def post(self, request):
         file = request.FILES.get('image')
         if not file:
             return Response({'error': 'No NIfTI file provided'}, status=400)
-        
+
         global brain_seg_model
         if brain_seg_model is None:
             brain_seg_model = BrainSegNet()
-        
+
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".nii") as tmp:
                 for chunk in file.chunks():
@@ -262,12 +270,13 @@ class BrainSegView(APIView):
                 image = Image.fromarray((norm * 255).astype(np.uint8)).convert('L')
                 tensor = preprocess(image).unsqueeze(0).unsqueeze(0)
                 with torch.no_grad():
-                    mask = model_ixi_brain_seg(tensor).argmax(dim=1).squeeze().cpu().numpy()
-                result_img = Image.fromarray((mask * 85).astype(np.uint8))  # 0, 85, 170
+                    mask = brain_seg_model(tensor).argmax(dim=1).squeeze().cpu().numpy()
+                result_img = Image.fromarray((mask * 85).astype(np.uint8))
                 buf = io.BytesIO()
                 result_img.save(buf, format='JPEG')
                 return Response({
                     'result': f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode()}"
                 })
+
         except Exception as e:
             return Response({'error': str(e)}, status=500)
