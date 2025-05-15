@@ -30,3 +30,7 @@ medical-image-converter/.DS_Store
 *.bak
 *.swp
 .idea/
+
+# Models downloaded from Hugging Face
+core/backend/models/
+
