@@ -379,12 +379,56 @@ const MedicalImageConverter = () => {
                 </div>
               </div>
             )}
-            
-            {activeTab === 'histogram' && (
-              <div className="flex justify-center items-center h-48 text-gray-400">
-                <p>Some Diagram?.</p>
+    
+          {activeTab === 'histogram' && (
+            <div className="text-gray-300 space-y-8">
+              {/* Performance Chart */}
+              <div>
+                <h3 className="text-lg font-semibold text-yellow-300 mb-2">
+                  Performance Comparison
+                </h3>
+                <img
+                  src="/assets/Model_Comparison_Chart.png"
+                  alt="Model Performance Comparison"
+                  className="w-full rounded border border-gray-600"
+                />
+                <p className="text-sm text-gray-400 mt-1">
+                  Scaled SSIM (×100) and PSNR scores for all tested models. Multi-Input U-Net shows superior performance and stability across both metrics, while other models like cGAN were discarded due to training instability or dataset mismatch.
+                </p>
               </div>
-            )}
+
+              {/* Model Architecture Diagram */}
+              <div>
+                <h3 className="text-lg font-semibold text-blue-300 mb-2">
+                  Model Architecture Diagram
+                </h3>
+                <img
+                  src="/assets/Model_Architecture_Diagram.png"
+                  alt="Architecture Overview"
+                  className="w-full rounded border border-gray-600"
+                />
+                <p className="text-sm text-gray-400 mt-1">
+                  The architecture features a multi-modal U-Net generator taking in T1N, T1C and T2W, followed by a segmentation head to jointly output T2-FLAIR and tumour map. This dual-path strategy enforces structural alignment.
+                </p>
+              </div>
+
+              {/* Workflow Pipeline */}
+              <div>
+                <h3 className="text-lg font-semibold text-green-300 mb-2">
+                  Workflow Pipeline
+                </h3>
+                <img
+                  src="/assets/Workflow_Diagram.png"
+                  alt="Workflow Pipeline"
+                  className="w-full rounded border border-gray-600"
+                />
+                <p className="text-sm text-gray-400 mt-1">
+                  Visual summary of the full conversion process from NIfTI input → preprocessing → model inference → segmentation and final visualisation.
+                </p>
+              </div>
+            </div>
+          )}
+
             
             {activeTab === 'details' && (
               <div className="text-gray-300 space-y-2">
