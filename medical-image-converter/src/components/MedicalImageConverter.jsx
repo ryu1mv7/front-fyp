@@ -13,11 +13,11 @@ const MedicalImageConverter = () => {
   const [conversionType, setConversionType] = useState('t1-to-t2');
   const [inputFormat, setInputFormat] = useState('image');
   const [inputImage, setInputImage] = useState(null);
-  const [inputImages, setInputBatch] = useState([]);
+  const [inputBatch, setInputBatch] = useState([]);
   const [niiFiles, setNiiFiles] = useState([]);
   const [modalities, setModalities] = useState({});
   const [outputImage, setOutputImage] = useState({ t2f: null, seg: null });
-  const [outputImages, setOutputBatch] = useState([]);
+  const [outputBatch, setOutputBatch] = useState([]);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -199,7 +199,7 @@ const MedicalImageConverter = () => {
   };
 
   const handleBatchConversion = async () => {
-    if (!inputImages.length) {
+    if (!inputBatch.length) {
       setError('Please select a folder with valid images');
       return;
     }
@@ -213,9 +213,9 @@ const MedicalImageConverter = () => {
       const results = [];
       const endpoint = '/api/convert/';
 
-      for (let i = 0; i < inputImages.length; i++) {
+      for (let i = 0; i < inputBatch.length; i++) {
         const formData = new FormData();
-        formData.append('image', inputImages[i]);
+        formData.append('image', inputBatch[i]);
         formData.append('conversionType', conversionType);
 
         const response = await fetch(`http://localhost:5000${endpoint}`, {
@@ -224,15 +224,15 @@ const MedicalImageConverter = () => {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(`Failed to convert ${inputImages[i].name}: ${data.error}`);
+        if (!response.ok) throw new Error(`Failed to convert ${inputBatch[i].name}: ${data.error}`);
 
         results.push({
-          original: inputImages[i].name,
+          original: inputBatch[i].name,
           t2f: data.result.t2f || data.result,
           seg: data.result.seg || null
         });
 
-        setBatchProgress(((i + 1) / inputImages.length) * 100);
+        setBatchProgress(((i + 1) / inputBatch.length) * 100);
       }
 
       setOutputBatch(results);
@@ -407,9 +407,9 @@ const MedicalImageConverter = () => {
               onChange={handleFolderUpload}
               className="mb-2"
             />
-            {inputImages.length > 0 && (
+            {inputBatch.length > 0 && (
               <p className="text-sm text-gray-400">
-                {inputImages.length} images selected from folder
+                {inputBatch.length} images selected from folder
               </p>
             )}
           </div>
@@ -516,7 +516,7 @@ const MedicalImageConverter = () => {
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-4">Batch Processing Results</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {outputImages.map((result, index) => (
+              {outputBatch.map((result, index) => (
                 <div key={index} className="bg-gray-700 p-2 rounded">
                   <img 
                     src={result.t2f} 
