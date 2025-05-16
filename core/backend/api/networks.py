@@ -2,21 +2,20 @@ import os
 import torch
 import torch.nn as nn
 from torchvision import transforms
-from PIL import Image
-import numpy as np
+from PIL import Image # Needed for Resize interpolation if used
+import numpy as np # Needed for init_weights if using random
 
 # ─── Paths ──────────────────────────────────────────────────────────────────────
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_DIR = os.path.join(BASE_DIR, 'models')
-PATH_T1T2 = os.path.join(MODEL_DIR, 'set_200generator.pth')  # T1→T2
-PATH_PD2T2 = os.path.join(MODEL_DIR, 'best_gan_model.pth')  # PD→T2
-PATH_BRATS_T2F_SEG = os.path.join(MODEL_DIR, 'cgan_models_t2f_seg_250.pth')  # Your addition
-PATH_MRI2CT = os.path.join(MODEL_DIR, 'pix2pix_weights.pth')  # Your addition
-PATH_IXI_BRAIN_SEG = os.path.join(MODEL_DIR, 'ixi_multiclass_model.pt')  # Your addition
+BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_DIR  = os.path.join(BASE_DIR, 'models')
+PATH_T1T2  = os.path.join(MODEL_DIR, 'set_200generator.pth') # T1→T2
+PATH_PD2T2 = os.path.join(MODEL_DIR, 'best_gan_model.pth')  # PD→T2 
 
-# ─── Weight Initialization (From General Version) ──────────────────────────────
+# ─── Weight Initialization (Needed by GeneratorT1T2) ───────────────────────────
 def init_weights(net, init_type='normal', gain=0.02):
-    """Apply the recommended weight initialisation for GANs."""
+    """
+    Apply the recommended weight initialisation for GANs.
+    """
     def init_func(m):
         classname = m.__class__.__name__
         if hasattr(m, 'weight') and ('Conv' in classname or 'Linear' in classname):
@@ -31,14 +30,16 @@ def init_weights(net, init_type='normal', gain=0.02):
             if hasattr(m, 'bias') and m.bias is not None:
                 nn.init.constant_(m.bias.data, 0.0)
         elif 'BatchNorm2d' in classname or 'InstanceNorm2d' in classname:
+            # Note: The original init_weights handled BatchNorm2d too, keeping it similar
             if hasattr(m, 'weight') and m.weight is not None:
                 nn.init.normal_(m.weight.data, 1.0, gain)
             if hasattr(m, 'bias') and m.bias is not None:
                 nn.init.constant_(m.bias.data, 0.0)
+    # print(f"Applying {init_type} initialization with gain={gain}") # Optional: for debugging init
     net.apply(init_func)
 
-# ─── Generator for T1->T2 (From General Version) ────────────────────────────────
-class GeneratorT1T2(nn.Module):
+# ─── Generator for T1->T2 (from Notebook) ──────────────────────────────────────
+class GeneratorT1T2(nn.Module): 
     """
     A U-Net style generator with 8 down-samplings and 8 up-samplings. (From Notebook)
     Uses InstanceNorm2d and specific final layer.
@@ -187,103 +188,11 @@ class GeneratorPDT2(nn.Module): # RENAMED from GeneratorUNet
         u7 = self.up7(u6, d1)
         return self.final_up(u7)
 
-# ─── Your Custom Models ────────────────────────────────────────────────────────
-class Pix2PixGenerator(nn.Module):
-    """Your lightweight Pix2Pix model for MRI→CT."""
-    def __init__(self, in_channels=1, out_channels=1, features=64):
-        super().__init__()
-        self.encoder = nn.Sequential(
-            nn.Conv2d(in_channels, features, 4, 2, 1),
-            nn.LeakyReLU(0.2),
-            nn.Conv2d(features, features * 2, 4, 2, 1),
-            nn.BatchNorm2d(features * 2),
-            nn.LeakyReLU(0.2)
-        )
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(features * 2, features, 4, 2, 1),
-            nn.ReLU(),
-            nn.ConvTranspose2d(features, out_channels, 4, 2, 1),
-            nn.Tanh()
-        )
-
-    def forward(self, x):
-        x = self.encoder(x)
-        return self.decoder(x)
-
-class CGANWithSegOutput(nn.Module):
-    """Your model for BraTS (T2-Flair + Segmentation)."""
-    def __init__(self, input_channels=3, output_channels=1):
-        super().__init__()
-        self.base = GeneratorT1T2(input_channels=input_channels, output_channels=output_channels)
-        self.seg_head = nn.Sequential(
-            nn.Conv2d(output_channels, 1, kernel_size=1),
-            nn.Tanh()
-        )
-
-    def forward(self, x):
-        t2f = self.base(x)
-        seg = self.seg_head(t2f)
-        return t2f, seg
-
-class BrainSegNet(nn.Module):
-    """Your brain segmentation model (IXI dataset)."""
-    def __init__(self, input_channels=1, output_channels=4):
-        super().__init__()
-        self.encoder1 = nn.Sequential(
-            nn.Conv2d(input_channels, 32, 3, padding=1),   # [32, 1, 3, 3]
-            nn.ReLU(),
-            nn.Conv2d(32, 32, 3, padding=1),               # [32, 32, 3, 3]
-            nn.ReLU()
-        )
-        self.encoder2 = nn.Sequential(
-            nn.Conv2d(32, 64, 3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.ReLU()
-        )
-        self.bottleneck = nn.Sequential(
-            nn.Conv2d(64, 128, 3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(128, 128, 3, padding=1),
-            nn.ReLU()
-        )
-        self.up2 = nn.ConvTranspose2d(128, 64, 2, stride=2)
-        self.decoder2 = nn.Sequential(
-            nn.Conv2d(128, 64, 3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.ReLU()
-        )
-        self.up1 = nn.ConvTranspose2d(64, 32, 2, stride=2)
-        self.decoder1 = nn.Sequential(
-            nn.Conv2d(64, 32, 3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, 3, padding=1),
-            nn.ReLU()
-        )
-        self.final = nn.Conv2d(32, output_channels, kernel_size=1)
-
-        self._load_weights()
-
-    def _load_weights(self):
-        weights = torch.load(PATH_IXI_BRAIN_SEG, map_location='cpu')
-        self.load_state_dict(weights)
-
-    def forward(self, x):
-        e1 = self.encoder1(x)
-        e2 = self.encoder2(e1)
-        b = self.bottleneck(e2)
-        u2 = self.up2(b)
-        d2 = self.decoder2(torch.cat([u2, e2], dim=1))
-        u1 = self.up1(d2)
-        d1 = self.decoder1(torch.cat([u1, e1], dim=1))
-        return self.final(d1)
-
-# ─── Loader (Improved from General Version) ─────────────────────────────────────
-def load_generator(path, model_class, strict=False):
-    """Load a generator with better error handling."""
+# ─── Loader ────────────────────────────────────────────────────────────────────
+def load_generator(path, model_class, strict=False): # Added model_class parameter
+    # ... (loading state dict code remains the same) ...
     try:
-        ckpt = torch.load(path, map_location='cpu')
+        ckpt = torch.load(path, map_location='cpu') #, weights_only=True) # Add weights_only=True if applicable
         if isinstance(ckpt, dict) and 'generator_state_dict' in ckpt:
              state = ckpt['generator_state_dict']
         elif isinstance(ckpt, dict) and 'state_dict' in ckpt: # Common alternative key
@@ -295,41 +204,40 @@ def load_generator(path, model_class, strict=False):
     except Exception as e:
         print(f"Error loading or processing state dict from {path}: {e}")
         raise
-    
-    # Initialize model (handles both your and general version's args)
-    if model_class.__name__ == "Pix2PixGenerator":
-        model = model_class(in_channels=1, out_channels=1)
-    else:
-        model = model_class(input_channels=1, output_channels=1)  # General models
 
+    # Instantiate the correct model class
+    # CHANGE THE KEYWORD ARGUMENT NAMES HERE:
+    model = model_class(input_channels=1, output_channels=1)
+
+    # ... (load state_dict code remains the same) ...
     try:
         model.load_state_dict(state, strict=strict)
     except RuntimeError as e:
-        missing = [k for k in state.keys() if k not in model.state_dict()]
-        unexpected = [k for k in model.state_dict() if k not in state.keys()]
-        raise RuntimeError(
-            f"Failed to load {model_class.__name__}:\n"
-            f"Missing keys: {missing}\n"
-            f"Unexpected keys: {unexpected}"
-        ) from e
+         print(f"Error loading state_dict into {model_class.__name__} architecture: {e}")
+         print("This often means the architecture defined in the code doesn't match the saved weights.")
+         print(f"strict={strict} was used.")
+         if not strict:
+             print("Try strict=True to pinpoint missing/unexpected keys.")
+         raise
+    except Exception as e:
+        print(f"An unexpected error occurred during model.load_state_dict: {e}")
+        raise
 
     model.eval()
     return model
 
-# ─── Transforms (From General Version) ──────────────────────────────────────────
-preprocess = transforms.Compose([
-    transforms.Resize((256, 256), interpolation=Image.BICUBIC),
+# instantiate both using the correct classes (this part remains the same)
+model_t1_t2 = load_generator(PATH_T1T2, GeneratorT1T2, strict=True)
+model_pd2t2 = load_generator(PATH_PD2T2, GeneratorPDT2, strict=True)
+
+# ─── Transforms ─────────────────────────────────────────────────────────────────
+# Ensure Resize uses an appropriate interpolation, BICUBIC matches notebook
+preprocess  = transforms.Compose([
+    transforms.Resize((256,256), interpolation=Image.BICUBIC), # Match notebook interpolation
     transforms.ToTensor(),
     transforms.Normalize([0.5], [0.5]),
 ])
-
 postprocess = transforms.Compose([
-    transforms.Normalize([-1], [2]),  # Reverse Normalize([0.5], [0.5])
-    transforms.ToPILImage(),
+    transforms.Normalize([-1], [2]), # Reverses Normalize([0.5], [0.5])
+    transforms.ToPILImage()
 ])
-
-# ─── Instantiate Models (Combined) ──────────────────────────────────────────────
-model_t1_t2 = load_generator(PATH_T1T2, GeneratorT1T2, strict=True)
-model_pd2t2 = load_generator(PATH_PD2T2, GeneratorPDT2, strict=True)
-model_brats_t2f_seg = load_generator(PATH_BRATS_T2F_SEG, CGANWithSegOutput, strict=False)
-model_mri2ct = load_generator(PATH_MRI2CT, Pix2PixGenerator, strict=False)
