@@ -16,14 +16,20 @@ const MedicalImageConverter = () => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   
-  // const [metrics, setMetrics] = useState(null);
   const [metrics, setMetrics] = useState(null);
 
+  const [imageFormat, setImageFormat] = useState('png');
+
+  const formatOptions = [
+    { value: 'png', label: 'PNG / JPG' },
+    { value: 'nii', label: '.nii' }
+  ];
 
   
   const conversionOptions = [
     { value: 't1-to-t2',   label: 'T1 → T2'   },
-    { value: 'pd-to-t2',   label: 'PD → T2'   }
+    { value: 'pd-to-t2',   label: 'PD → T2'   },
+    { value: 't2-to-t1',  label: 'T2 → T1'    }
   ];
   
   
@@ -77,7 +83,8 @@ const MedicalImageConverter = () => {
       const formData = new FormData();
       formData.append('image', inputImage);
       formData.append('conversionType', conversionType);
-      
+      formData.append('imageFormat', imageFormat);
+
       const response = await fetch('http://localhost:5000/api/convert/', {
         method: 'POST',
         body: formData
@@ -214,6 +221,21 @@ const MedicalImageConverter = () => {
               {conversionOptions.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+           <div className="flex-1">
+            <label className="block text-sm font-medium mb-2">Image Format</label>
+            <select
+              className="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500"
+              value={imageFormat}
+              onChange={e => setImageFormat(e.target.value)}
+            >
+              {formatOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>

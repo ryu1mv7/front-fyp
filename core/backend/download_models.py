@@ -11,6 +11,7 @@ MODEL_FILES = [
     "ixi_multiclass_model.pt",
     "ixi_multiclass_model.pth",
     "pix2pix_weights.pth",
+    "cgan_unet100generator.pth"
 ]
 
 # 2) Your Hugging Face repo path
