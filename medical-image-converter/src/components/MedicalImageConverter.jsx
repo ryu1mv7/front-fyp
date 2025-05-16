@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, ArrowRight, RefreshCw } from 'lucide-react';
+import { Upload, ArrowRight, RefreshCw, Folder } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,14 +13,18 @@ const MedicalImageConverter = () => {
   const [conversionType, setConversionType] = useState('t1-to-t2');
   const [inputFormat, setInputFormat] = useState('image');
   const [inputImage, setInputImage] = useState(null);
+  const [inputImages, setInputBatch] = useState([]);
   const [niiFiles, setNiiFiles] = useState([]);
   const [modalities, setModalities] = useState({});
   const [outputImage, setOutputImage] = useState({ t2f: null, seg: null });
+  const [outputImages, setOutputBatch] = useState([]);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('metrics');
   const [brainSegOutput, setBrainSegOutput] = useState(null);
+  const [batchProgress, setBatchProgress] = useState(0);
+  const [processingMode, setProcessingMode] = useState('single');
 
   // Model data
   const modalityList = ['T1N', 'T1C', 'T2W', 'T2F', 'SEG'];
@@ -105,6 +109,31 @@ const MedicalImageConverter = () => {
     fileReader.readAsDataURL(file);
   };
 
+  const handleFolderUpload = (event) => {
+    const files = Array.from(event.target.files);
+    const imageFiles = files.filter(file => 
+      file.type.startsWith('image/') || 
+      file.name.endsWith('.jpg') || 
+      file.name.endsWith('.jpeg') || 
+      file.name.endsWith('.png')
+    );
+
+    if (imageFiles.length === 0) {
+      setError('No valid image files found in the selected folder');
+      return;
+    }
+
+    setInputBatch(imageFiles);
+    setOutputBatch([]);
+    setError(null);
+
+    if (imageFiles.length > 0) {
+      const fileReader = new FileReader();
+      fileReader.onload = () => setPreviewUrl(fileReader.result);
+      fileReader.readAsDataURL(imageFiles[0]);
+    }
+  };
+
   const handleNiftiUpload = (event, modality) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -115,6 +144,14 @@ const MedicalImageConverter = () => {
   };
 
   const handleConversion = async () => {
+    if (processingMode === 'single') {
+      await handleSingleConversion();
+    } else {
+      await handleBatchConversion();
+    }
+  };
+
+  const handleSingleConversion = async () => {
     if ((inputFormat === 'image' && !inputImage) || 
         (inputFormat === 'nii' && Object.keys(modalities).length === 0)) {
       setError('Please upload valid input files');
@@ -158,6 +195,53 @@ const MedicalImageConverter = () => {
       setError(err.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBatchConversion = async () => {
+    if (!inputImages.length) {
+      setError('Please select a folder with valid images');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setOutputBatch([]);
+    setBatchProgress(0);
+
+    try {
+      const results = [];
+      const endpoint = '/api/convert/';
+
+      for (let i = 0; i < inputImages.length; i++) {
+        const formData = new FormData();
+        formData.append('image', inputImages[i]);
+        formData.append('conversionType', conversionType);
+
+        const response = await fetch(`http://localhost:5000${endpoint}`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(`Failed to convert ${inputImages[i].name}: ${data.error}`);
+
+        results.push({
+          original: inputImages[i].name,
+          t2f: data.result.t2f || data.result,
+          seg: data.result.seg || null
+        });
+
+        setBatchProgress(((i + 1) / inputImages.length) * 100);
+      }
+
+      setOutputBatch(results);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+      setBatchProgress(0);
     }
   };
 
@@ -279,6 +363,18 @@ const MedicalImageConverter = () => {
           </div>
           
           <div className="flex-1">
+            <label className="block text-sm font-medium mb-2">Processing Mode</label>
+            <select
+              className="w-full p-2 bg-gray-700 rounded border border-gray-600"
+              value={processingMode}
+              onChange={(e) => setProcessingMode(e.target.value)}
+            >
+              <option value="single">Single Image</option>
+              <option value="batch">Batch Processing (Folder)</option>
+            </select>
+          </div>
+
+          <div className="flex-1">
             <label className="block text-sm font-medium mb-2">Input Format</label>
             <select
               className="w-full p-2 bg-gray-700 rounded border border-gray-600"
@@ -292,9 +388,33 @@ const MedicalImageConverter = () => {
         </div>
 
         {/* File Upload Section */}
-        {inputFormat === 'image' && (
-          <input type="file" accept=".jpg,.jpeg,.png" onChange={handleFileUpload} className="mb-4" />
+        {inputFormat === 'image' && processingMode === 'single' && (
+          <input 
+            type="file" 
+            accept=".jpg,.jpeg,.png" 
+            onChange={handleFileUpload} 
+            className="mb-4" 
+          />
         )}
+
+        {inputFormat === 'image' && processingMode === 'batch' && (
+          <div className="mb-4">
+            <input
+              type="file"
+              webkitdirectory="true"
+              directory="true"
+              multiple
+              onChange={handleFolderUpload}
+              className="mb-2"
+            />
+            {inputImages.length > 0 && (
+              <p className="text-sm text-gray-400">
+                {inputImages.length} images selected from folder
+              </p>
+            )}
+          </div>
+        )}
+
         {inputFormat === 'nii' && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             {conversionType === 'ixi-brain-seg' ? (
@@ -341,35 +461,78 @@ const MedicalImageConverter = () => {
           </div>
         )}
 
-        <button onClick={handleConversion} disabled={isLoading} className="bg-green-600 px-4 py-2 rounded">
+        <button 
+          onClick={handleConversion} 
+          disabled={isLoading} 
+          className="bg-green-600 px-4 py-2 rounded"
+        >
           {isLoading ? 'Converting...' : 'Convert'}
         </button>
 
-        {error && <div className="mt-4 p-2 bg-red-500 bg-opacity-20 border border-red-500 text-red-300 rounded">{error}</div>}
+        {error && (
+          <div className="mt-4 p-2 bg-red-500 bg-opacity-20 border border-red-500 text-red-300 rounded">
+            {error}
+          </div>
+        )}
+
+        {/* Batch Progress Bar */}
+        {processingMode === 'batch' && isLoading && (
+          <div className="mt-4">
+            <div className="w-full bg-gray-700 rounded-full h-2.5">
+              <div 
+                className="bg-green-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${batchProgress}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-gray-400 mt-1">
+              Processing: {Math.round(batchProgress)}%
+            </p>
+          </div>
+        )}
+
+        {/* Output Preview Section */}
+        {processingMode === 'single' ? (
+          <div className="grid grid-cols-3 gap-4 mt-6 text-center">
+            <div>
+              <div className="bg-gray-700 h-64 flex items-center justify-center border border-gray-600">
+                {inputFormat === 'image' && previewUrl ? <img src={previewUrl} alt="Input Preview" className="max-h-full" /> : <p>No preview available</p>}
+              </div>
+              <p className="text-sm mt-2 text-gray-400">Input Image</p>
+            </div>
+            <div>
+              <div className="bg-gray-700 h-64 flex items-center justify-center border border-gray-600">
+                {outputImage.t2f ? <img src={outputImage.t2f} alt="Predicted Output" className="max-h-full" /> : <p>Predicted (T2F) output</p>}
+              </div>
+              <p className="text-sm mt-2 text-gray-400">Synthesized T2-FLAIR</p>
+            </div>
+            <div>
+              <div className="bg-gray-700 h-64 flex items-center justify-center border border-gray-600">
+                {outputImage.seg ? <img src={outputImage.seg} alt="Segmentation Output" className="max-h-full" /> : <p>Segmentation output</p>}
+              </div>
+              <p className="text-sm mt-2 text-gray-400">Segmentation Map</p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-4">Batch Processing Results</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {outputImages.map((result, index) => (
+                <div key={index} className="bg-gray-700 p-2 rounded">
+                  <img 
+                    src={result.t2f} 
+                    alt={`Output ${index + 1}`} 
+                    className="w-full h-32 object-cover rounded"
+                  />
+                  <p className="text-sm text-gray-400 mt-2 truncate">
+                    {result.original}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <button className={`px-4 py-2 font-medium ${activeTab === 'brain-seg' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`} onClick={() => setActiveTab('brain-seg')}>Brain Tissue Segmentation</button>
-
-        {/* Output Previews */}
-        <div className="grid grid-cols-3 gap-4 mt-6 text-center">
-          <div>
-            <div className="bg-gray-700 h-64 flex items-center justify-center border border-gray-600">
-              {inputFormat === 'image' && previewUrl ? <img src={previewUrl} alt="Input Preview" className="max-h-full" /> : <p>No preview available</p>}
-            </div>
-            <p className="text-sm mt-2 text-gray-400">Input Image</p>
-          </div>
-          <div>
-            <div className="bg-gray-700 h-64 flex items-center justify-center border border-gray-600">
-              {outputImage.t2f ? <img src={outputImage.t2f} alt="Predicted Output" className="max-h-full" /> : <p>Predicted (T2F) output</p>}
-            </div>
-            <p className="text-sm mt-2 text-gray-400">Synthesized T2-FLAIR</p>
-          </div>
-          <div>
-            <div className="bg-gray-700 h-64 flex items-center justify-center border border-gray-600">
-              {outputImage.seg ? <img src={outputImage.seg} alt="Segmentation Output" className="max-h-full" /> : <p>Segmentation output</p>}
-            </div>
-            <p className="text-sm mt-2 text-gray-400">Segmentation Map</p>
-          </div>
-        </div>
 
         {/* Tabbed Section */}
         <div className="mt-6">
