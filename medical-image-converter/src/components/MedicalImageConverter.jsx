@@ -35,10 +35,9 @@ const MedicalImageConverter = () => {
     const files = Array.from(event.target.files);
     if (!files.length) return;
     
-    // Replace existing files instead of appending
     setinputImages(files);
     setOutputImages([]);
-    setPreviewUrls([]);  // Clear existing preview URLs
+    setPreviewUrls([]);
     setError(null);
     setCurrentImageIndex(0);
     
@@ -60,10 +59,9 @@ const MedicalImageConverter = () => {
     event.preventDefault();
     const files = Array.from(event.dataTransfer.files);
     if (files.length) {
-      // Replace existing files instead of appending
       setinputImages(files);
       setOutputImages([]);
-      setPreviewUrls([]);  // Clear existing preview URLs
+      setPreviewUrls([]);
       setError(null);
       setCurrentImageIndex(0);
       
