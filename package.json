@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "nifti-reader-js": "^0.8.0"
+  }
+}

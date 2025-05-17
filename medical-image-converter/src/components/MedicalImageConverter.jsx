@@ -1,8 +1,185 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Upload, ArrowRight, RefreshCw, Folder, ChevronLeft, ChevronRight } from 'lucide-react';
 //for firebase
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+
+const PixelHistogram = ({ imageUrl, label, color }) => {
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+
+  const drawGrid = (ctx, margin, plotWidth, plotHeight) => {
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 0.5;
+
+    [
+      { count: 10, start: margin.left, length: plotWidth, isVertical: true },
+      { count: 5, start: margin.top, length: plotHeight, isVertical: false }
+    ].forEach(({ count, start, length, isVertical }) => {
+      for (let i = 0; i <= count; i++) {
+        const pos = start + (i / count) * length;
+        ctx.beginPath();
+        ctx.moveTo(isVertical ? pos : margin.left, isVertical ? margin.top : pos);
+        ctx.lineTo(
+          isVertical ? pos : margin.left + plotWidth,
+          isVertical ? margin.top + plotHeight : pos
+        );
+        ctx.stroke();
+      }
+    });
+  };
+
+  const calculateHistogram = (imageData) => {
+    const intensityValues = [];
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const intensity = imageData.data[i];
+      if (intensity > 0) intensityValues.push(intensity);
+    }
+
+    const min = Math.min(...intensityValues);
+    const max = Math.max(...intensityValues);
+    const range = max - min;
+    const numBins = 100;
+    const binSize = range / numBins;
+    const histogram = new Array(numBins).fill(0);
+
+    intensityValues.forEach(value => {
+      const binIndex = Math.min(Math.floor((value - min) / binSize), numBins - 1);
+      histogram[binIndex]++;
+    });
+
+    const sortedCounts = [...histogram].sort((a, b) => b - a);
+    const maxCount = Math.max(
+      sortedCounts[Math.floor(sortedCounts.length * 0.02)],
+      Math.max(...histogram) * 0.8
+    );
+
+    return { histogram, min, max, maxCount };
+  };
+
+  const drawHistogram = (ctx, data, margin, plotWidth, plotHeight) => {
+    const { histogram } = data;
+    const maxY = 1500;
+    
+    const points = histogram.map((value, i) => ({
+      x: margin.left + (i / histogram.length) * plotWidth,
+      y: margin.top + plotHeight - (Math.min(value, maxY) / maxY) * plotHeight
+    }));
+
+    // Draw filled area
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, margin.top + plotHeight);
+    points.forEach(point => ctx.lineTo(point.x, point.y));
+    ctx.lineTo(points[points.length - 1].x, margin.top + plotHeight);
+    ctx.fillStyle = color + '40';
+    ctx.fill();
+
+    // Draw line
+    ctx.beginPath();
+    points.forEach((point, i) => {
+      if (i === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  };
+
+  const drawLabels = (ctx, data, margin, plotWidth, plotHeight) => {
+    ctx.fillStyle = '#999';
+    
+    // Y-axis label
+    ctx.save();
+    ctx.translate(margin.left * 0.3, margin.top + plotHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.font = `${Math.max(10, ctx.canvas.width * 0.025)}px Arial`;
+    ctx.fillText('Frequency', 0, 0);
+    ctx.restore();
+
+    // X-axis label
+    ctx.textAlign = 'center';
+    ctx.fillText('Intensity', margin.left + plotWidth / 2, margin.top + plotHeight + margin.bottom * 0.8);
+
+    // Y-axis values
+    ctx.textAlign = 'right';
+    ctx.font = `${Math.max(8, ctx.canvas.width * 0.02)}px Arial`;
+    for (let i = 0; i <= 5; i++) {
+      const y = margin.top + (i / 5) * plotHeight;
+      const value = Math.round(((5 - i) / 5) * 1500);
+      ctx.fillText(value.toString(), margin.left - 5, y + 4);
+    }
+
+    // X-axis values
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= 5; i++) {
+      const x = margin.left + (i / 5) * plotWidth;
+      const value = Math.round((i / 5) * 255);
+      ctx.fillText(value.toString(), x, margin.top + plotHeight + margin.bottom * 0.5);
+    }
+  };
+
+  useEffect(() => {
+    if (!imageUrl) return;
+
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    
+    const updateCanvasSize = () => {
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.width * 0.6;
+    };
+
+    updateCanvasSize();
+    const resizeObserver = new ResizeObserver(updateCanvasSize);
+    resizeObserver.observe(container);
+
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = img.width;
+      tempCanvas.height = img.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(img, 0, 0);
+      
+      const margin = {
+        top: canvas.height * 0.15,
+        right: canvas.width * 0.1,
+        bottom: canvas.height * 0.15,
+        left: canvas.width * 0.15
+      };
+
+      const plotWidth = canvas.width - margin.left - margin.right;
+      const plotHeight = canvas.height - margin.top - margin.bottom;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const histogramData = calculateHistogram(tempCtx.getImageData(0, 0, img.width, img.height));
+      
+      drawGrid(ctx, margin, plotWidth, plotHeight);
+      drawHistogram(ctx, histogramData, margin, plotWidth, plotHeight);
+      drawLabels(ctx, histogramData, margin, plotWidth, plotHeight);
+    };
+    
+    img.src = imageUrl;
+    return () => resizeObserver.disconnect();
+  }, [imageUrl, color]);
+
+  return (
+    <div className="flex flex-col items-center w-full">
+      <h3 className="text-sm font-medium mb-2">{label}</h3>
+      <div ref={containerRef} className="w-full bg-gray-800 rounded border border-gray-700 p-4">
+        <canvas ref={canvasRef} className="w-full" style={{ display: 'block' }} />
+      </div>
+      <div className="text-xs text-gray-400 mt-2">
+        MRI signal intensity distribution
+      </div>
+    </div>
+  );
+};
 
 const MedicalImageConverter = () => {
   const [conversionType, setConversionType] = useState('t1-to-t2');
@@ -16,6 +193,8 @@ const MedicalImageConverter = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [targetImage, settargetImage] = useState(null);
+  const [targetImageUrl, settargetImageUrl] = useState(null);
   
   const [metrics, setMetrics] = useState(null);
   const [imageFormat, setImageFormat] = useState('png');
@@ -32,7 +211,10 @@ const MedicalImageConverter = () => {
   ];
   
   const handleFileUpload = (event) => {
-    const files = Array.from(event.target.files);
+    const files = Array.from(event.target.files).filter(file => 
+      file.type.startsWith('image/') || file.name.endsWith('.nii')
+    );
+    
     if (!files.length) return;
     
     setinputImages(files);
@@ -57,7 +239,10 @@ const MedicalImageConverter = () => {
   
   const handleDrop = (event) => {
     event.preventDefault();
-    const files = Array.from(event.dataTransfer.files);
+    const files = Array.from(event.dataTransfer.files).filter(file => 
+      file.type.startsWith('image/') || file.name.endsWith('.nii')
+    );
+    
     if (files.length) {
       setinputImages(files);
       setOutputImages([]);
@@ -155,7 +340,25 @@ const MedicalImageConverter = () => {
       setError('Failed to log out');
     }
   };
-  
+
+  const handletargetImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/') && !file.name.endsWith('.nii')) {
+      setError('Please select a valid image file');
+      return;
+    }
+
+    settargetImage(file);
+    
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+      settargetImageUrl(fileReader.result);
+    };
+    fileReader.readAsDataURL(file);
+  };
+
   return (
     <div className="flex flex-col items-center p-6 bg-gray-900 text-white min-h-screen">
       {/* Navigation Bar */}
@@ -267,16 +470,14 @@ const MedicalImageConverter = () => {
           
           <div className="flex gap-2">
             <label className="flex items-center justify-center px-4 py-2 bg-blue-600 rounded cursor-pointer hover:bg-blue-700 transition">
-              <Folder size={18} className="mr-2" />
-              Select Folder
+              <Upload size={18} className="mr-2" />
+              Select Files
               <input 
                 type="file" 
                 className="hidden" 
-                accept=".jpg,.jpeg,.png"
+                accept=".jpg,.jpeg,.png,.nii"
                 multiple
                 onChange={handleFileUpload} 
-                webkitdirectory="true"
-                directory="true"
               />
             </label>
             
@@ -289,7 +490,7 @@ const MedicalImageConverter = () => {
                 ? <RefreshCw size={18} className="mr-2 animate-spin" /> 
                 : <ArrowRight size={18} className="mr-2" />
               }
-              Convert All
+              Convert {inputImages.length > 0 ? `(${inputImages.length})` : ''}
             </button>
           </div>
         </div>
@@ -390,7 +591,7 @@ const MedicalImageConverter = () => {
               className={`px-4 py-2 font-medium ${activeTab === 'histogram' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
               onClick={() => setActiveTab('histogram')}
             >
-              Visualization or Diagram?
+              Compare
             </button>
             <button
               className={`px-4 py-2 font-medium ${activeTab === 'details' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
@@ -462,7 +663,56 @@ const MedicalImageConverter = () => {
             )}
     
           {activeTab === 'histogram' && (
-            <div className="text-gray-300 space-y-8">
+            <div className="text-gray-300 space-y-12">
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-semibold text-blue-300">
+                    Compare Pixel Intensity
+                  </h3>
+                  <label className="flex items-center px-3 py-1.5 bg-blue-600 text-sm rounded cursor-pointer hover:bg-blue-700 transition">
+                    <Upload size={14} className="mr-1.5" />
+                    Upload Target
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept=".jpg,.jpeg,.png,.nii"
+                      onChange={handletargetImageUpload} 
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Current Output */}
+                  <div className="flex flex-col items-center">
+                    {outputImages[currentImageIndex] ? (
+                      <PixelHistogram 
+                        imageUrl={outputImages[currentImageIndex]}
+                        label="Generated Output"
+                        color="#10B981"
+                      />
+                    ) : (
+                      <div className="w-full h-[300px] bg-gray-800 rounded border border-gray-700 flex items-center justify-center text-gray-400">
+                        <p>Convert an image to see distribution</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reference Image */}
+                  <div className="flex flex-col items-center">
+                    {targetImageUrl ? (
+                      <PixelHistogram 
+                        imageUrl={targetImageUrl}
+                        label="Target Image"
+                        color="#3B82F6"
+                      />
+                    ) : (
+                      <div className="w-full h-[300px] bg-gray-800 rounded border border-gray-700 flex items-center justify-center text-gray-400">
+                        <p>Upload a target image</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Performance Chart */}
               <div>
                 <h3 className="text-lg font-semibold text-yellow-300 mb-2">
@@ -474,7 +724,7 @@ const MedicalImageConverter = () => {
                   className="w-full rounded border border-gray-600"
                 />
                 <p className="text-sm text-gray-400 mt-1">
-                  Scaled SSIM (×100) and PSNR scores for all tested models. Multi-Input U-Net shows superior performance and stability across both metrics, while other models like cGAN were discarded due to training instability or dataset mismatch.
+                  Scaled SSIM (×100) and PSNR scores for all tested models. Multi-Input U-Net shows superior performance and stability across both metrics.
                 </p>
               </div>
 
@@ -489,7 +739,7 @@ const MedicalImageConverter = () => {
                   className="w-full rounded border border-gray-600"
                 />
                 <p className="text-sm text-gray-400 mt-1">
-                  The architecture features a multi-modal U-Net generator taking in T1N, T1C and T2W, followed by a segmentation head to jointly output T2-FLAIR and tumour map. This dual-path strategy enforces structural alignment.
+                  The architecture features a multi-modal U-Net generator taking in T1N, T1C and T2W, followed by a segmentation head to jointly output T2-FLAIR and tumour map.
                 </p>
               </div>
 
