@@ -1,52 +1,108 @@
 import React, { useState } from 'react';
 
 const Segmentation = () => {
-  const [segmentationResult, setSegmentationResult] = useState(null);
+  const [inputs, setInputs] = useState({ t1n: null, t1ce: null, t2: null });
+  const [previews, setPreviews] = useState({ t1n: null });
+  const [outputs, setOutputs] = useState({ t2fUrl: null, segUrl: null });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleSegmentation = async (imageFile) => {
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    if (files.length > 0) {
+      const file = files[0];
+      setInputs(prev => ({ ...prev, [name]: file }));
+      if (name === 't1n') {
+        setPreviews(prev => ({ ...prev, t1n: URL.createObjectURL(file) }));
+      }
+    }
+  };
+
+  const handleSubmit = async () => {
+    const { t1n, t1ce, t2 } = inputs;
+    if (!t1n || !t1ce || !t2) {
+      setError("Please upload all three modalities.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
+    setOutputs({ t2fUrl: null, segUrl: null });
 
     const formData = new FormData();
-    formData.append('image', imageFile);
+    formData.append("t1n", t1n);
+    formData.append("t1ce", t1ce);
+    formData.append("t2", t2);
 
     try {
-      const response = await fetch('http://localhost:5000/api/segment/', {
-        method: 'POST',
-        body: formData
+      const res = await fetch("http://localhost:5000/api/segment/", {
+        method: "POST",
+        body: formData,
       });
 
-      const data = await response.json();
-      setSegmentationResult(data.result);
-
+      if (!res.ok) throw new Error("Segmentation failed");
+      const data = await res.json();
+      setOutputs({
+        t2fUrl: data.t2f,
+        segUrl: data.seg,
+      });
     } catch (err) {
-      console.error(err);
-      setError('Segmentation failed.');
+      setError("Segmentation failed.");
+      console.error("Segmentation error:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div className="p-4 bg-gray-700 rounded">
-      <button 
-        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
-        onClick={() => handleSegmentation(/* pass imageFile */)}
-      >
-        Run Segmentation
-      </button>
-
-      {isLoading && <p>Processing...</p>}
-      {error && <p className="text-red-400">{error}</p>}
-
-      {segmentationResult && (
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold">Segmentation Result</h3>
-          <img src={segmentationResult} alt="Segmentation Output" className="w-full rounded border border-gray-600" />
+  const renderImageBox = (label, src, alt) => (
+    <div className="text-center bg-gray-900 p-2 rounded border border-gray-600 min-h-[280px] flex flex-col justify-between">
+      <p className="text-sm mb-2">{label}</p>
+      {src ? (
+        <img src={src} alt={alt} className="w-full rounded border" />
+      ) : (
+        <div className="flex items-center justify-center h-48 bg-gray-800 text-gray-500 border border-dashed rounded">
+          Preview not available
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div className="p-4 bg-gray-800 rounded text-white space-y-4">
+      {/* Uploads */}
+      <div className="space-y-2">
+        <label>
+          <span className="block text-sm mb-1">Upload T1n (.nii or .nii.gz)</span>
+          <input type="file" name="t1n" accept=".nii,.nii.gz" onChange={handleFileChange} />
+        </label>
+        <label>
+          <span className="block text-sm mb-1">Upload T1ce (.nii or .nii.gz)</span>
+          <input type="file" name="t1ce" accept=".nii,.nii.gz" onChange={handleFileChange} />
+        </label>
+        <label>
+          <span className="block text-sm mb-1">Upload T2 (.nii or .nii.gz)</span>
+          <input type="file" name="t2" accept=".nii,.nii.gz" onChange={handleFileChange} />
+        </label>
+      </div>
+
+      {/* Submit */}
+      <button
+        className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
+        onClick={handleSubmit}
+        disabled={isLoading}
+      >
+        {isLoading ? "Processing..." : "Run Segmentation"}
+      </button>
+
+      {/* Error */}
+      {error && <p className="text-red-400">{error}</p>}
+
+      {/* Output Previews */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        {renderImageBox("Input Preview (T1n)", previews.t1n, "T1n")}
+        {renderImageBox("Predicted T2f", outputs.t2fUrl, "T2f Output")}
+        {renderImageBox("Predicted Segmentation", outputs.segUrl, "Segmentation Output")}
+      </div>
     </div>
   );
 };

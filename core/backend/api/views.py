@@ -1,5 +1,6 @@
 import io
 import base64
+import torch.nn.functional as F
 import numpy as np
 import torch
 from PIL import Image
@@ -15,12 +16,7 @@ from rest_framework.views import APIView
 
 import nibabel as nib
 
-from .networks import (
-    model_t1_t2,
-    model_pd2t2,
-    model_t2_t1,
-    # preprocess and postprocess are now context-dependent
-)
+from .networks import UNet2DGeneratorCheckpointMatch
 
 # --- Initialise LPIPS metric at module level ---
 lpips_fn = lpips.LPIPS(net='alex')
@@ -201,3 +197,87 @@ class ConvertImageView(APIView):
             import traceback
             print(traceback.format_exc())
             return Response({'error': f"An error occurred: {str(e)}"}, status=500)
+
+
+class SegmentImageView(APIView):
+    def post(self, request):
+        def get_slice(file):
+            suffix = '.nii.gz' if file.name.endswith('.nii.gz') else '.nii'
+            tf = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+            for chunk in file.chunks():
+                tf.write(chunk)
+            tf.close()
+            try:
+                data = nib.load(tf.name).get_fdata()
+                slice_ = data[:, :, data.shape[2] // 2]
+                norm = (slice_ - np.min(slice_)) / (np.ptp(slice_) + 1e-6)
+                return norm
+            finally:
+                os.remove(tf.name)
+
+        try:
+            t1n  = get_slice(request.FILES['t1n'])
+            t1ce = get_slice(request.FILES['t1ce'])
+            t2   = get_slice(request.FILES['t2'])
+
+            # Stack into input tensor
+            input_tensor = torch.stack([
+                torch.tensor(t1n, dtype=torch.float32),
+                torch.tensor(t1ce, dtype=torch.float32),
+                torch.tensor(t2, dtype=torch.float32)
+            ], dim=0).unsqueeze(0)  # [1, 3, H, W]
+
+            input_tensor = F.interpolate(input_tensor, size=(256, 256), mode='bilinear', align_corners=False)
+            input_tensor = (input_tensor - input_tensor.min()) / (input_tensor.max() - input_tensor.min())  # [0,1]
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            input_tensor = input_tensor.to(device)
+
+            print("INPUT SHAPE:", input_tensor.shape)
+            print("INPUT MIN:", input_tensor.min().item(), "MAX:", input_tensor.max().item())
+
+            # Load model
+            model_path = 'public/models/cgan_t2f_seg.pt'
+            assert os.path.exists(model_path), f"Model not found: {model_path}"
+
+            model = UNet2DGeneratorCheckpointMatch(in_channels=3, out_channels=2)
+            
+            # 🧠 Fix: Load 'generator' subkey
+            state = torch.load(model_path, map_location='cpu')
+            if 'generator' in state:
+                print("Using nested state['generator']")
+                state = state['generator']
+            else:
+                print("Using flat state_dict")
+
+            print("STATE KEYS:", list(state.keys())[:5])
+            model.load_state_dict(state, strict=False)
+            model.to(device)
+            model.eval()
+            
+            with torch.no_grad():
+                out = torch.sigmoid(model(input_tensor))
+                print("PREDICTION SHAPE:", out.shape)
+                print("PREDICTED MIN:", out.min().item(), "MAX:", out.max().item())
+                t2f, seg = out[:, 0:1, :, :], out[:, 1:2, :, :]
+
+            print("OUTPUT SHAPE:", out.shape)
+            print("T2f RANGE:", t2f.min().item(), t2f.max().item())
+            print("SEG RANGE:", seg.min().item(), seg.max().item())
+
+            def to_b64(t):
+                arr = (t.squeeze().cpu().numpy() * 255).astype(np.uint8)
+                img = Image.fromarray(arr)
+                buf = io.BytesIO()
+                img.save(buf, format='PNG')
+                return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+            return Response({
+                't2f': to_b64(t2f),
+                'seg': to_b64(seg)
+            })
+
+        except Exception as e:
+            import traceback
+            print("Segmentation failed with error:")
+            traceback.print_exc()
+            return Response({'error': f"{type(e).__name__}: {e}"}, status=500)
