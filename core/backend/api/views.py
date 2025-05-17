@@ -201,31 +201,3 @@ class ConvertImageView(APIView):
             import traceback
             print(traceback.format_exc())
             return Response({'error': f"An error occurred: {str(e)}"}, status=500)
-
-class SegmentationView(APIView):
-    parser_classes = [MultiPartParser, FormParser]
-
-    def post(self, request):
-        img_f = request.FILES.get('image')
-        if not img_f:
-            return Response({'error': 'No image provided'}, status=400)
-
-        try:
-            img = Image.open(img_f).convert('L')
-            inp = standard_preprocess(img).unsqueeze(0)
-
-            with torch.no_grad():
-                out_t = model_t2f_seg(inp)
-
-            pil_out = postprocess(out_t.squeeze(0).cpu().clamp(-1, 1))
-
-            buf = io.BytesIO()
-            pil_out.save(buf, format='PNG')
-            b64 = base64.b64encode(buf.getvalue()).decode()
-
-            return Response({'result': f'data:image/png;base64,{b64}'})
-
-        except Exception as e:
-            import traceback
-            print(traceback.format_exc())
-            return Response({'error': f"Segmentation failed: {str(e)}"}, status=500)

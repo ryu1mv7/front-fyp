@@ -11,7 +11,6 @@ MODEL_DIR  = os.path.join(BASE_DIR, 'models')
 PATH_T1T2  = os.path.join(MODEL_DIR, 'set_200generator.pth') # T1→T2
 PATH_T2T1  = os.path.join(MODEL_DIR, 'cgan_unet100generator.pth') # T2→T1 (NEWLY ADDED MODEL PATH)
 PATH_PD2T2 = os.path.join(MODEL_DIR, 'best_gan_model.pth')  # PD→T2
-PATH_T2F_SEG = os.path.join(MODEL_DIR, 'cgan_t2f_seg.pt')  # New CGAN model path
 
 # ─── Weight Initialization (Used by GeneratorT1T2 and GeneratorT2T1) ───────────
 def init_weights(net, init_type='normal', gain=0.02):
@@ -296,19 +295,10 @@ def load_generator(path, model_class, strict=False):
     model.eval()
     return model
 
-class GeneratorT2FSeg(nn.Module):
-    def __init__(self, input_channels=1, output_channels=1):
-        super(GeneratorT2FSeg, self).__init__()
-        self.model = nn.Identity()  # Replace with actual architecture
-
-    def forward(self, x):
-        return self.model(x)
-    
 # Instantiate all generators
 model_t1_t2 = load_generator(PATH_T1T2, GeneratorT1T2, strict=True)
 model_t2_t1 = load_generator(PATH_T2T1, GeneratorT2T1, strict=True) # Added this line
 model_pd2t2 = load_generator(PATH_PD2T2, GeneratorPDT2, strict=True)
-model_t2f_seg = load_generator(PATH_T2F_SEG, GeneratorT2FSeg, strict=True)
 
 # ─── Transforms ─────────────────────────────────────────────────────────────────
 preprocess  = transforms.Compose([
