@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Upload, ArrowRight, RefreshCw } from 'lucide-react';
+import { Upload, ArrowRight, RefreshCw, Folder, ChevronLeft, ChevronRight } from 'lucide-react';
 //for firebase
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const MedicalImageConverter = () => {
   const [conversionType, setConversionType] = useState('t1-to-t2');
-  const [inputImage, setInputImage] = useState(null);
-  const [outputImage, setOutputImage] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [inputImages, setinputImages] = useState([]);
+  const [outputImages, setOutputImages] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('metrics');
@@ -17,7 +18,6 @@ const MedicalImageConverter = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   
   const [metrics, setMetrics] = useState(null);
-
   const [imageFormat, setImageFormat] = useState('png');
 
   const formatOptions = [
@@ -25,28 +25,31 @@ const MedicalImageConverter = () => {
     { value: 'nii', label: '.nii' }
   ];
 
-  
   const conversionOptions = [
     { value: 't1-to-t2',   label: 'T1 → T2'   },
     { value: 'pd-to-t2',   label: 'PD → T2'   },
     { value: 't2-to-t1',  label: 'T2 → T1'    }
   ];
   
-  
   const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+    const files = Array.from(event.target.files);
+    if (!files.length) return;
     
-    setInputImage(file);
-    setOutputImage(null);
+    // Replace existing files instead of appending
+    setinputImages(files);
+    setOutputImages([]);
+    setPreviewUrls([]);  // Clear existing preview URLs
     setError(null);
+    setCurrentImageIndex(0);
     
-    // Create preview URL
-    const fileReader = new FileReader();
-    fileReader.onload = () => {
-      setPreviewUrl(fileReader.result);
-    };
-    fileReader.readAsDataURL(file);
+    // Create preview URLs for all files
+    files.forEach(file => {
+      const fileReader = new FileReader();
+      fileReader.onload = () => {
+        setPreviewUrls(prevUrls => [...prevUrls, fileReader.result]);
+      };
+      fileReader.readAsDataURL(file);
+    });
   };
   
   const handleDragOver = (event) => {
@@ -55,65 +58,88 @@ const MedicalImageConverter = () => {
   
   const handleDrop = (event) => {
     event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file) {
-      setInputImage(file);
-      setOutputImage(null);
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length) {
+      // Replace existing files instead of appending
+      setinputImages(files);
+      setOutputImages([]);
+      setPreviewUrls([]);  // Clear existing preview URLs
       setError(null);
+      setCurrentImageIndex(0);
       
-      // Create preview URL
-      const fileReader = new FileReader();
-      fileReader.onload = () => {
-        setPreviewUrl(fileReader.result);
-      };
-      fileReader.readAsDataURL(file);
+      // Create preview URLs for all files
+      files.forEach(file => {
+        const fileReader = new FileReader();
+        fileReader.onload = () => {
+          setPreviewUrls(prevUrls => [...prevUrls, fileReader.result]);
+        };
+        fileReader.readAsDataURL(file);
+      });
     }
+  };
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex(prev => (prev > 0 ? prev - 1 : prev));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex(prev => (prev < inputImages.length - 1 ? prev + 1 : prev));
   };
   
   const handleConversion = async () => {
-    if (!inputImage) {
-      setError('Please upload an image first');
+    if (!inputImages.length) {
+      setError('Please upload at least one image');
       return;
     }
   
     setIsLoading(true);
     setError(null);
+    setOutputImages([]);
   
     try {
-      const formData = new FormData();
-      formData.append('image', inputImage);
-      formData.append('conversionType', conversionType);
-      formData.append('imageFormat', imageFormat);
+      const results = [];
+      const allMetrics = [];
 
-      const response = await fetch('http://localhost:5000/api/convert/', {
-        method: 'POST',
-        body: formData
-      });
-  
-      // grab text so we can debug
-      const text = await response.text();
-      console.log('raw response:', response.status, text);
-  
-      if (!response.ok) {
-        // try parsing JSON error, otherwise show raw text
-        let msg;
-        try {
-          msg = JSON.parse(text).error;
-        } catch {
-          msg = text;
+      // Process each file
+      for (const file of inputImages) {
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('conversionType', conversionType);
+        formData.append('imageFormat', imageFormat);
+
+        const response = await fetch('http://localhost:5000/api/convert/', {
+          method: 'POST',
+          body: formData
+        });
+    
+        const text = await response.text();
+        
+        if (!response.ok) {
+          let msg;
+          try {
+            msg = JSON.parse(text).error;
+          } catch {
+            msg = text;
+          }
+          throw new Error(`Failed to convert ${file.name}: ${msg}`);
         }
-        throw new Error(msg || 'Conversion process failed');
+    
+        const data = JSON.parse(text);
+        results.push(data.result);
+        allMetrics.push(data.metrics);
       }
-  
-      const data = JSON.parse(text);
-      setOutputImage(data.result);
 
-      setMetrics({
-        ssim:  data.metrics.ssim,
-        psnr:  data.metrics.psnr,
-        lpips: data.metrics.lpips,
-      });
+      setOutputImages(results);
 
+      // Average the metrics across all processed images
+      if (allMetrics.length > 0) {
+        const avgMetrics = {
+          ssim: allMetrics.reduce((acc, m) => acc + m.ssim, 0) / allMetrics.length,
+          psnr: allMetrics.reduce((acc, m) => acc + m.psnr, 0) / allMetrics.length,
+          lpips: allMetrics.reduce((acc, m) => acc + m.lpips, 0) / allMetrics.length,
+        };
+        setMetrics(avgMetrics);
+      }
   
     } catch (err) {
       console.error(err);
@@ -243,26 +269,29 @@ const MedicalImageConverter = () => {
           
           <div className="flex gap-2">
             <label className="flex items-center justify-center px-4 py-2 bg-blue-600 rounded cursor-pointer hover:bg-blue-700 transition">
-              <Upload size={18} className="mr-2" />
-              Upload
+              <Folder size={18} className="mr-2" />
+              Select Folder
               <input 
                 type="file" 
                 className="hidden" 
-                accept=".jpg,.jpeg,.png" 
+                accept=".jpg,.jpeg,.png"
+                multiple
                 onChange={handleFileUpload} 
+                webkitdirectory="true"
+                directory="true"
               />
             </label>
             
             <button 
               className="flex items-center justify-center px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleConversion}
-              disabled={!inputImage || isLoading}
+              disabled={!inputImages.length || isLoading}
             >
               {isLoading 
                 ? <RefreshCw size={18} className="mr-2 animate-spin" /> 
                 : <ArrowRight size={18} className="mr-2" />
               }
-              Convert
+              Convert All
             </button>
           </div>
         </div>
@@ -273,48 +302,80 @@ const MedicalImageConverter = () => {
           </div>
         )}
         
-        <div className="flex flex-col md:flex-row gap-6">
-          <div 
-            className="flex-1 h-64 border-2 border-dashed border-gray-600 rounded flex items-center justify-center bg-gray-700"
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            {previewUrl ? (
-              <img 
-                src={previewUrl} 
-                alt="Input" 
-                className="max-w-full max-h-full object-contain" 
-              />
-            ) : (
-              <div className="text-center p-4">
-                <Upload size={32} className="mx-auto mb-2 text-gray-500" />
-                <p className="text-gray-400">Drag and drop input image here</p>
-              </div>
-            )}
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col md:flex-row gap-6">
+            <div 
+              className="flex-1 h-64 border-2 border-dashed border-gray-600 rounded flex items-center justify-center bg-gray-700"
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
+              {previewUrls[currentImageIndex] ? (
+                <img 
+                  src={previewUrls[currentImageIndex]} 
+                  alt="Input" 
+                  className="max-w-full max-h-full object-contain" 
+                />
+              ) : (
+                <div className="text-center p-4">
+                  <Upload size={32} className="mx-auto mb-2 text-gray-500" />
+                  <p className="text-gray-400">Drag and drop input image here</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-center">
+              <ArrowRight size={24} className="text-blue-500" />
+            </div>
+            
+            <div className="flex-1 h-64 border-2 border-gray-600 rounded flex items-center justify-center bg-gray-700">
+              {isLoading ? (
+                <div className="text-center">
+                  <RefreshCw size={32} className="mx-auto mb-2 animate-spin text-blue-500" />
+                  <p>Processing...</p>
+                </div>
+              ) : outputImages[currentImageIndex] ? (
+                <img 
+                  src={outputImages[currentImageIndex]} 
+                  alt="Output" 
+                  className="max-w-full max-h-full object-contain" 
+                />
+              ) : (
+                <div className="text-center p-4 text-gray-400">
+                  <p>Converted image will appear here</p>
+                </div>
+              )}
+            </div>
           </div>
-          
-          <div className="flex items-center justify-center">
-            <ArrowRight size={24} className="text-blue-500" />
-          </div>
-          
-          <div className="flex-1 h-64 border-2 border-gray-600 rounded flex items-center justify-center bg-gray-700">
-            {isLoading ? (
+
+          {/* Image Navigation */}
+          {inputImages.length > 0 && (
+            <div className="flex items-center justify-center gap-4">
+              <button
+                className="p-2 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handlePrevImage}
+                disabled={currentImageIndex === 0}
+              >
+                <ChevronLeft size={24} />
+              </button>
+              
               <div className="text-center">
-                <RefreshCw size={32} className="mx-auto mb-2 animate-spin text-blue-500" />
-                <p>Processing...</p>
+                <p className="text-sm text-gray-400">
+                  Image {currentImageIndex + 1} of {inputImages.length}
+                </p>
+                <p className="text-sm font-medium truncate max-w-xs">
+                  {inputImages[currentImageIndex]?.name}
+                </p>
               </div>
-            ) : outputImage ? (
-              <img 
-                src={outputImage} 
-                alt="Output" 
-                className="max-w-full max-h-full object-contain" 
-              />
-            ) : (
-              <div className="text-center p-4 text-gray-400">
-                <p>Converted image will appear here</p>
-              </div>
-            )}
-          </div>
+
+              <button
+                className="p-2 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleNextImage}
+                disabled={currentImageIndex === inputImages.length - 1}
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+          )}
         </div>
         
         {/* Tabbed Section */}
@@ -454,7 +515,7 @@ const MedicalImageConverter = () => {
             
             {activeTab === 'details' && (
               <div className="text-gray-300 space-y-2">
-                <p><span className="font-medium">Input Format:</span> {inputImage ? inputImage.type : "-"}</p>
+                <p><span className="font-medium">Input Format:</span> {inputImages.length ? inputImages[0].type : "-"}</p>
                 <p><span className="font-medium">Output Format:</span> JPEG</p>
                 <p><span className="font-medium">Model Version:</span> v1.2.0</p>
                 <p><span className="font-medium">Conversion Type:</span> {conversionOptions.find(opt => opt.value === conversionType)?.label || conversionType}</p>
