@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Upload, ArrowRight, RefreshCw, Folder, ChevronLeft, ChevronRight } from 'lucide-react';
 //for firebase
 import { useAuth } from '../contexts/AuthContext';
