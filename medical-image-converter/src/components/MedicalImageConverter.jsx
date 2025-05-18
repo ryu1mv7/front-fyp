@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import Segmentation from './Segmentation';
 import IXISegmentation from './IXISegmentation';
 import VolumeViewer from './VolumeViewer';
+import { Sun, Moon } from 'lucide-react';
 
 const PixelHistogram = ({ imageUrl, label, color }) => {
   const canvasRef = useRef(null);
@@ -202,6 +203,16 @@ const MedicalImageConverter = () => {
   const [metrics, setMetrics] = useState(null);
   const [imageFormat, setImageFormat] = useState('png');
   const [volumeSlices, setVolumeSlices] = useState([]);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
+  const toggleTheme = () => {
+    const newTheme = isDarkMode ? 'light' : 'dark';
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    localStorage.setItem('theme', newTheme);
+    setIsDarkMode(!isDarkMode);
+  };
 
   const formatOptions = [
     { value: 'png', label: 'PNG / JPG' },
@@ -410,9 +421,28 @@ const MedicalImageConverter = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 text-gray-800">
       {/* Header */}
-      <header className="bg-white shadow-sm py-4 px-6">
+      <header className="bg-white shadow-sm py-4 px-6 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-semibold text-blue-600">Mirage. Your Multi-Modality Translation & Synthesis Platform.</h1>
+          <h1 className="text-xl font-semibold text-blue-600 dark:text-blue-400">
+            Mirage. Your Multi-Modality Translation & Synthesis Platform.
+          </h1>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={toggleTheme}
+              className="flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
+            >
+              {isDarkMode ? (
+                <>
+                  <Sun size={16} className="mr-2" />
+                  Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon size={16} className="mr-2" />
+                  Dark Mode
+                </>
+              )}
+            </button>
           <div className="relative">
             <button 
               className="flex items-center space-x-2 focus:outline-none"
@@ -463,11 +493,12 @@ const MedicalImageConverter = () => {
             )}
           </div>
         </div>
-      </header>
+      </div>
+    </header>
 
       {/* Main Content */}
-      <main className="flex-grow py-8 px-4">
-        <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
+      <main className="flex-grow py-8 px-4 bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden dark:bg-gray-800 dark:border dark:border-gray-700">
           {/* Main Tabs */}
           <div className="border-b border-gray-200">
             <nav className="flex -mb-px">
@@ -1000,15 +1031,23 @@ const MedicalImageConverter = () => {
   </main>
 
       {/* Footer */}
-      <footer className="bg-white py-4 px-6 border-t border-gray-200">
+      <footer className="bg-white py-4 px-6 border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-gray-500">© 2025 MDS16. Monash University. For research use only.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            © 2025 MDS16. Monash University. For research use only.
+          </p>
           <div className="mt-2 md:mt-0">
-            <button className="text-sm text-gray-500 hover:text-gray-700">Terms</button>
-            <span className="mx-2 text-gray-300">•</span>
-            <button className="text-sm text-gray-500 hover:text-gray-700">Privacy</button>
-            <span className="mx-2 text-gray-300">•</span>
-            <button className="text-sm text-gray-500 hover:text-gray-700">Help</button>
+            <button className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+              Terms
+            </button>
+            <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>
+            <button className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+              Privacy
+            </button>
+            <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>
+            <button className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+              Help
+            </button>
           </div>
         </div>
       </footer>

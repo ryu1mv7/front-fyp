@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Trash2, ArrowLeft, Image as ImageIcon, Zap, Clock } from 'lucide-react';
+import { Download, Trash2, ArrowLeft, Image as ImageIcon, Zap, Clock, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const History = () => {
@@ -23,7 +23,7 @@ const History = () => {
   };
 
   const handleClear = () => {
-    if (window.confirm('Clear all history?')) {
+    if (window.confirm('Clear all history? This action cannot be undone.')) {
       localStorage.removeItem('conversionHistory');
       setHistoryData([]);
     }
@@ -35,145 +35,212 @@ const History = () => {
     if (isDuplicate) return alert("Already bookmarked!");
 
     localStorage.setItem('bookmarkedResults', JSON.stringify([entry, ...prev]));
-    alert("★ Bookmarked successfully!");
+    alert("Bookmarked successfully!");
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getModeColor = (mode) => {
+    switch(mode) {
+      case 'conversion': return 'bg-blue-100 text-blue-800';
+      case 'segmentation': return 'bg-green-100 text-green-800';
+      case 'overlay': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getModeLabel = (mode) => {
+    switch(mode) {
+      case 'conversion': return 'Conversion';
+      case 'segmentation': return 'Tumor Segmentation';
+      case 'overlay': return 'Tissue Overlay';
+      default: return 'Result';
+    }
   };
 
   return (
-    <div className="p-6 text-white bg-gray-900 min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Conversion & Segmentation History</h1>
-        <button
-          onClick={() => navigate('/converter')}
-          className="flex items-center gap-2 text-sm bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded"
-        >
-          <ArrowLeft size={16} /> Back
-        </button>
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">History</h1>
+            <p className="text-sm text-gray-500">View and manage your past conversions and segmentations</p>
+          </div>
+          <button
+            onClick={() => navigate('/converter')}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <ArrowLeft size={16} className="mr-2" />
+            Back to Converter
+          </button>
+        </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex justify-between items-center mb-8">
-        <button
-          onClick={handleExportAll}
-          className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded flex items-center gap-2"
-        >
-          <Download size={16} /> Export All
-        </button>
-        <button
-          onClick={handleClear}
-          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded flex items-center gap-2"
-        >
-          <Trash2 size={16} /> Clear History
-        </button>
-      </div>
-
-      {/* No Data */}
-      {historyData.length === 0 ? (
-        <p className="text-gray-400 text-center">No history found. Perform a conversion or segmentation first.</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {historyData.map((entry, idx) => (
-            <div
-              key={idx}
-              className="bg-gray-800 hover:shadow-xl transition-shadow duration-200 p-4 rounded-lg border border-gray-700 flex flex-col"
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleExportAll}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              {/* Tag */}
-              <span className={`text-xs font-semibold px-2 py-1 mb-2 rounded-full w-max
-                ${entry.mode === 'conversion'
-                  ? 'bg-purple-900 text-purple-300'
-                  : entry.mode === 'overlay'
-                    ? 'bg-yellow-900 text-yellow-300'
-                    : 'bg-blue-900 text-blue-300'
-                }`}
-              >
-                {entry.mode === 'overlay' ? 'Overlay Segmentation' : entry.mode.charAt(0).toUpperCase() + entry.mode.slice(1)}
-              </span>
+              <Download size={16} className="mr-2" />
+              Export All
+            </button>
+            <button
+              onClick={handleClear}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              <Trash2 size={16} className="mr-2" />
+              Clear History
+            </button>
+          </div>
+          <p className="text-sm text-gray-500">
+            Showing {historyData.length} {historyData.length === 1 ? 'entry' : 'entries'}
+          </p>
+        </div>
 
-              {/* Main Image(s) */}
-              {entry.mode === 'overlay' ? (
-                <>
-                  {/* Show only final overlay on input */}
-                  {entry.hardOverlay && (
-                    <div className="overflow-hidden rounded-lg border border-gray-600 mb-3">
+        {/* No Data */}
+        {historyData.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <div className="mx-auto h-24 w-24 text-gray-400">
+              <Clock size={24} className="mx-auto" />
+            </div>
+            <h3 className="mt-2 text-lg font-medium text-gray-900">No history found</h3>
+            <p className="mt-1 text-sm text-gray-500">Perform a conversion or segmentation to see results here.</p>
+            <div className="mt-6">
+              <button
+                onClick={() => navigate('/converter')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Go to Converter
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {historyData.map((entry, idx) => (
+              <div
+                key={idx}
+                className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 hover:shadow-md transition-shadow duration-200"
+              >
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getModeColor(entry.mode)}`}>
+                    {getModeLabel(entry.mode)}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {formatDate(entry.timestamp)}
+                  </span>
+                </div>
+
+                {/* Image(s) */}
+                <div className="p-4">
+                  {entry.mode === 'overlay' ? (
+                    entry.hardOverlay && (
+                      <div className="mb-4 rounded-md overflow-hidden border border-gray-200">
+                        <img
+                          src={entry.hardOverlay}
+                          alt="Overlay result"
+                          className="w-full h-48 object-contain"
+                        />
+                      </div>
+                    )
+                  ) : (
+                    <div className="mb-4 rounded-md overflow-hidden border border-gray-200">
                       <img
-                        src={entry.hardOverlay}
-                        alt="Overlay on Input"
-                        className="w-full object-contain transition-transform duration-200 hover:scale-105"
+                        src={entry.outputImage}
+                        alt="Output result"
+                        className="w-full h-48 object-contain"
                       />
                     </div>
                   )}
-                </>
-              ) : (
-                <div className="overflow-hidden rounded-lg border border-gray-600 mb-3">
-                  <img
-                    src={entry.outputImage}
-                    alt="Output"
-                    className="w-full object-contain transition-transform duration-200 hover:scale-105"
-                  />
+
+                  {entry.extraImage && (
+                    <div className="mb-4 rounded-md overflow-hidden border border-gray-200">
+                      <img
+                        src={entry.extraImage}
+                        alt="Additional result"
+                        className="w-full h-48 object-contain"
+                      />
+                    </div>
+                  )}
+
+                  {/* Details */}
+                  <div className="space-y-2">
+                    {entry.conversionType && (
+                      <p className="text-sm">
+                        <span className="font-medium text-gray-700">Conversion:</span>{' '}
+                        <span className="text-gray-600">
+                          {entry.conversionType.replace(/-/g, ' ').toUpperCase()}
+                        </span>
+                      </p>
+                    )}
+                    <p className="text-sm">
+                      <span className="font-medium text-gray-700">Model:</span>{' '}
+                      <span className="text-gray-600">{entry.modelName || 'U-Net'}</span>
+                    </p>
+                  </div>
+
+                  {/* Metrics */}
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-gray-50 p-2 rounded">
+                      <Zap size={16} className="mx-auto text-blue-500" />
+                      <p className="text-xs text-gray-500 mt-1">SSIM</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {entry.metrics?.ssim?.toFixed(4) || '–'}
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 p-2 rounded">
+                      <ImageIcon size={16} className="mx-auto text-blue-500" />
+                      <p className="text-xs text-gray-500 mt-1">PSNR</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {entry.metrics?.psnr?.toFixed(2) || '–'} dB
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 p-2 rounded">
+                      <Clock size={16} className="mx-auto text-blue-500" />
+                      <p className="text-xs text-gray-500 mt-1">LPIPS</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {entry.metrics?.lpips?.toFixed(4) || '–'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              )}
 
-
-              {/* Extra Output */}
-              {entry.extraImage && (
-                <div className="overflow-hidden rounded-lg border border-gray-600 mb-3">
-                  <img
-                    src={entry.extraImage}
-                    alt="Extra"
-                    className="w-full object-contain transition-transform duration-200 hover:scale-105"
-                  />
+                {/* Actions */}
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-between space-x-3">
+                  <button
+                    onClick={() => handleDownload(entry)}
+                    className="flex-1 inline-flex justify-center items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <Download size={16} className="mr-2" />
+                    Download
+                  </button>
+                  <button
+                    onClick={() => handleBookmark(entry)}
+                    className="flex-1 inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                  >
+                    <Star size={16} className="mr-2" />
+                    Bookmark
+                  </button>
                 </div>
-              )}
-
-              {/* Info */}
-              <div className="text-sm space-y-1 text-gray-300">
-                {entry.conversionType && (
-                  <p><strong>Conversion:</strong> {entry.conversionType.replace(/-/g, ' ').toUpperCase()}</p>
-                )}
-                <p><strong>Model:</strong> {entry.modelName || 'U-Net'}</p>
               </div>
-
-              {/* Metrics */}
-              <div className="grid grid-cols-3 gap-2 text-center mt-3 text-xs text-gray-400">
-                <div className="bg-gray-700 p-2 rounded">
-                  <Zap className="mx-auto mb-1" size={14} />
-                  SSIM<br />
-                  <span className="text-white">{entry.metrics?.ssim?.toFixed(4) || '–'}</span>
-                </div>
-                <div className="bg-gray-700 p-2 rounded">
-                  <ImageIcon className="mx-auto mb-1" size={14} />
-                  PSNR<br />
-                  <span className="text-white">{entry.metrics?.psnr?.toFixed(2) || '–'} dB</span>
-                </div>
-                <div className="bg-gray-700 p-2 rounded">
-                  <Clock className="mx-auto mb-1" size={14} />
-                  LPIPS<br />
-                  <span className="text-white">{entry.metrics?.lpips?.toFixed(4) || '–'}</span>
-                </div>
-              </div>
-
-              {/* Timestamp */}
-              <p className="text-xs text-gray-500 mt-3 italic text-right">
-                {new Date(entry.timestamp).toLocaleString()}
-              </p>
-
-              {/* Download */}
-              <button
-                onClick={() => handleDownload(entry)}
-                className="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm w-full"
-              >
-                Download Output
-              </button>
-              <button
-                onClick={() => handleBookmark(entry)}
-                className="mt-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-1 rounded text-sm w-full"
-              >
-                ★ Bookmark
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

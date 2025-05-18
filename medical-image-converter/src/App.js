@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -62,6 +63,17 @@ function AppRoutes() {
 }
 
 function App() {
+  // Auto-apply theme on load from localStorage
+  useEffect(() => {
+    const theme = localStorage.getItem('theme');
+    const html = document.documentElement;
+    if (theme === 'dark') {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
+    }
+  }, []);
+
   return (
     <Router>
       <AuthProvider>
