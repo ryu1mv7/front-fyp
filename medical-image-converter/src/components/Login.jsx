@@ -1,4 +1,3 @@
-// Login Screen
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,7 +18,6 @@ export default function Login() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    
     try {
       setError('');
       setLoading(true);
@@ -28,24 +26,23 @@ export default function Login() {
     } catch (error) {
       setError('Failed to log in: ' + error.message);
     }
-    
     setLoading(false);
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900">
-      <div className="w-full max-w-md p-8 space-y-8 bg-gray-800 rounded-lg shadow-md">
-        <h2 className="mt-6 text-3xl font-extrabold text-center text-white">
+    <div className="flex items-center justify-center min-h-screen bg-gray-950 text-white relative px-4">
+      <div className="w-full max-w-md p-8 space-y-8 bg-gray-800/70 backdrop-blur-md border border-gray-700 rounded-lg shadow-lg animate-fade-in">
+        <h2 className="text-3xl font-extrabold text-center bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400 text-transparent bg-clip-text animate-text-glow">
           Sign in to your account
         </h2>
-        
+
         {error && (
-          <div className="p-3 bg-red-500 bg-opacity-20 border border-red-500 rounded text-red-300">
+          <div className="p-3 bg-red-500/10 border border-red-500 text-red-300 text-sm rounded">
             {error}
           </div>
         )}
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300">
@@ -59,7 +56,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-300">
                 Password
@@ -83,21 +80,39 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full flex justify-center py-2 px-4 rounded-md shadow-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
-        
-        <div className="text-center mt-4">
+
+        <div className="text-center">
           <p className="text-sm text-gray-400">
-            Need an account?{" "}
+            Need an account?{' '}
             <Link to="/signup" className="text-blue-400 hover:text-blue-300">
               Sign up
             </Link>
           </p>
         </div>
       </div>
+
+      {/* Animation styles */}
+      <style>{`
+        @keyframes textGlow {
+          0%, 100% { text-shadow: 0 0 10px #3b82f6, 0 0 20px #06b6d4; }
+          50% { text-shadow: 0 0 20px #8b5cf6, 0 0 30px #06b6d4; }
+        }
+        .animate-text-glow {
+          animation: textGlow 3s ease-in-out infinite alternate;
+        }
+        .animate-fade-in {
+          animation: fadeIn 1s ease-out both;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

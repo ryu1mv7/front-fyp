@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Upload, ArrowRight, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
-//for firebase
+import { Upload, ArrowRight, RefreshCw, ChevronLeft, ChevronRight, User, Settings, Bookmark, History, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Segmentation from './Segmentation';
@@ -409,283 +408,291 @@ const MedicalImageConverter = () => {
   };
 
   return (
-    <div className="flex flex-col items-center p-6 bg-gray-900 text-white min-h-screen">
-      {/* Navigation Bar */}
-      <div className="w-full bg-gray-800 p-4 flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Medical Image Converter</h1>
-        {/* User Info and Dropdown */}
-        <div className="relative">
-          <div 
-            className="flex items-center cursor-pointer" 
-            onMouseEnter={() => setShowDropdown(true)}
-          >
-            <span className="mr-2 text-gray-400">{currentUser?.displayName || currentUser?.email}</span>
-            <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
-              <span className="text-lg font-semibold">
-                {currentUser?.displayName 
-                  ? currentUser.displayName[0].toUpperCase() 
-                  : currentUser?.email 
-                    ? currentUser.email[0].toUpperCase() 
-                    : 'U'
-                }
-              </span>
-            </div>
-          </div>
-          
-          {/* Dropdown Menu */}
-          {showDropdown && (
-            <div 
-              className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-md shadow-lg z-10"
-              onMouseEnter={() => setShowDropdown(true)}
-              onMouseLeave={() => setShowDropdown(false)}
+    <div className="flex flex-col min-h-screen bg-gray-50 text-gray-800">
+      {/* Header */}
+      <header className="bg-white shadow-sm py-4 px-6">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-semibold text-blue-600">Mirage. Your Multi-Modality Translation & Synthesis Platform.</h1>
+          <div className="relative">
+            <button 
+              className="flex items-center space-x-2 focus:outline-none"
+              onClick={() => setShowDropdown(!showDropdown)}
             >
-              <div className="p-4 flex flex-col items-center border-b border-gray-700">
-                <div className="w-16 h-16 mb-2 bg-gray-700 rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold">
-                    {currentUser?.displayName 
-                      ? currentUser.displayName[0].toUpperCase() 
-                      : currentUser?.email 
-                        ? currentUser.email[0].toUpperCase() 
-                        : 'U'
-                    }
-                  </span>
-                </div>
-                <span className="font-medium">{currentUser?.displayName || "User"}</span>
-                <span className="text-sm text-gray-400 text-center">{currentUser?.email}</span>
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                <User size={18} />
               </div>
-              
-              <div className="py-1">
-                <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
-                  Dashboard
-                </button>
+              <span className="text-sm font-medium">{currentUser?.email.split('@')[0]}</span>
+            </button>
+            
+            {showDropdown && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-medium">{currentUser?.email}</p>
+                </div>
                 <button 
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => navigate('/history')}
                 >
+                  <History size={16} className="mr-3 text-gray-500" />
                   History
                 </button>
                 <button 
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => navigate('/bookmark')}
                 >
-                  ★ Bookmarks
+                  <Bookmark size={16} className="mr-3 text-gray-500" />
+                  Bookmarks
                 </button>
                 <button 
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => navigate('/settings')}
                 >
+                  <Settings size={16} className="mr-3 text-gray-500" />
                   Settings
                 </button>
-              </div>
-              
-              <div className="border-t border-gray-700 py-1">
-                <button 
-                  className="block w-full text-left px-4 py-2 text-red-400 hover:bg-gray-700"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="w-full max-w-4xl bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 className="text-xl font-bold mb-6">Multi-modal Medical Image Synthesis and Translation</h2>
-        
-        {/* Main Tabs: Conversion vs Segmentation vs Overlay */}
-        <div className="flex gap-4 border-b border-gray-700 mb-6">
-          <button
-            onClick={() => setActiveTab('conversion')}
-            className={`px-4 py-2 font-medium ${
-              activeTab === 'conversion'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-          >
-            Conversion
-          </button>
-          <button
-            onClick={() => setActiveTab('segmentation')}
-            className={`px-4 py-2 font-medium ${
-              activeTab === 'segmentation'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-          >
-            Segmentation
-          </button>
-          <button
-            onClick={() => setActiveTab('overlay')}
-            className={`px-4 py-2 font-medium ${
-              activeTab === 'overlay'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-          >
-            Overlay
-          </button>
-        </div>
-
-        {/* Conversion Panel */}
-        {activeTab === 'conversion' && (
-          <>
-            <h2 className="text-xl font-bold text-white mb-4">Modality Conversion (e.g., T1, PD & T2)</h2>
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-2">Conversion Type</label>
-                <select 
-                  className="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500"
-                  value={conversionType}
-                  onChange={(e) => setConversionType(e.target.value)}
-                >
-                  {conversionOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-2">Image Format</label>
-                <select
-                  className="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500"
-                  value={imageFormat}
-                  onChange={e => setImageFormat(e.target.value)}
-                >
-                  {formatOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="flex gap-2">
-                <label className="flex items-center justify-center px-4 py-2 bg-blue-600 rounded cursor-pointer hover:bg-blue-700 transition">
-                  <Upload size={18} className="mr-2" />
-                  Select Files
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    accept=".jpg,.jpeg,.png,.nii"
-                    multiple
-                    onChange={handleFileUpload} 
-                  />
-                </label>
-                
-                <button 
-                  className="flex items-center justify-center px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleConversion}
-                  disabled={!inputImages.length || isLoading}
-                >
-                  {isLoading 
-                    ? <RefreshCw size={18} className="mr-2 animate-spin" /> 
-                    : <ArrowRight size={18} className="mr-2" />
-                  }
-                  Convert {inputImages.length > 0 ? `(${inputImages.length})` : ''}
-                </button>
-              </div>
-            </div>
-            
-            {error && (
-              <div className="mb-4 p-3 bg-red-500 bg-opacity-20 border border-red-500 rounded text-red-300">
-                {error}
+                <div className="border-t border-gray-100">
+                  <button 
+                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+                    onClick={handleLogout}
+                  >
+                    <LogOut size={16} className="mr-3" />
+                    Sign out
+                  </button>
+                </div>
               </div>
             )}
-            
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div 
-                  className="flex-1 h-64 border-2 border-dashed border-gray-600 rounded flex items-center justify-center bg-gray-700"
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                >
-                  {previewUrls[currentImageIndex] ? (
-                    <img 
-                      src={previewUrls[currentImageIndex]} 
-                      alt="Input" 
-                      className="max-w-full max-h-full object-contain" 
-                    />
-                  ) : outputImages[currentImageIndex] ? (
-                    <img 
-                      src={outputImages[currentImageIndex]} 
-                      alt="Input (from output fallback)" 
-                      className="max-w-full max-h-full object-contain opacity-70" 
-                    />
-                  ) : (
-                    <div className="text-center p-4">
-                      <Upload size={32} className="mx-auto mb-2 text-gray-500" />
-                      <p className="text-gray-400">Drag and drop input image here</p>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex items-center justify-center">
-                  <ArrowRight size={24} className="text-blue-500" />
-                </div>
-                
-                <div className="flex-1 h-64 border-2 border-gray-600 rounded flex items-center justify-center bg-gray-700">
-                  {isLoading ? (
-                    <div className="text-center">
-                      <RefreshCw size={32} className="mx-auto mb-2 animate-spin text-blue-500" />
-                      <p>Processing...</p>
-                    </div>
-                  ) : outputImages[currentImageIndex] ? (
-                    <img 
-                      src={outputImages[currentImageIndex]} 
-                      alt="Output" 
-                      className="max-w-full max-h-full object-contain" 
-                    />
-                  ) : (
-                    <div className="text-center p-4 text-gray-400">
-                      <p>Converted image will appear here</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+          </div>
+        </div>
+      </header>
 
-              {/* Image Navigation */}
-              {inputImages.length > 0 && (
-                <div className="flex items-center justify-center gap-4">
-                  <button
-                    className="p-2 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handlePrevImage}
-                    disabled={currentImageIndex === 0}
-                  >
-                    <ChevronLeft size={24} />
-                  </button>
-                  
-                  <div className="text-center">
-                    <p className="text-sm text-gray-400">
-                      Image {currentImageIndex + 1} of {inputImages.length}
-                    </p>
-                    <p className="text-sm font-medium truncate max-w-xs">
-                      {inputImages[currentImageIndex]?.name}
-                    </p>
+      {/* Main Content */}
+      <main className="flex-grow py-8 px-4">
+        <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
+          {/* Main Tabs */}
+          <div className="border-b border-gray-200">
+            <nav className="flex -mb-px">
+              <button
+                onClick={() => setActiveTab('conversion')}
+                className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                  activeTab === 'conversion'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Image Conversion
+              </button>
+              <button
+                onClick={() => setActiveTab('segmentation')}
+                className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                  activeTab === 'segmentation'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Tumor Segmentation
+              </button>
+              <button
+                onClick={() => setActiveTab('overlay')}
+                className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                  activeTab === 'overlay'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Tissue Overlay
+              </button>
+            </nav>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === 'conversion' && (
+              <>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">MRI Modality Conversion</h2>
+                  <p className="text-gray-600">Transform between T1, T2, and PD MRI modalities using our AI model</p>
+                </div>
+
+                {/* Conversion Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Conversion Type</label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      value={conversionType}
+                      onChange={(e) => setConversionType(e.target.value)}
+                    >
+                      {conversionOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <button
-                    className="p-2 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleNextImage}
-                    disabled={currentImageIndex === inputImages.length - 1}
-                  >
-                    <ChevronRight size={24} />
-                  </button>
-                </div>
-              )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Output Format</label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      value={imageFormat}
+                      onChange={e => setImageFormat(e.target.value)}
+                    >
+                      {formatOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Volume Viewer Preview */}
-              {volumeSlices.length > 0 && (
-                <div className="mt-8 bg-gray-800 rounded border border-gray-700 p-4">
-                  <VolumeViewer slices={volumeSlices} />
+                  <div className="flex items-end space-x-3">
+                    <label className="flex-1">
+                      <span className="sr-only">Upload files</span>
+                      <div className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
+                        <Upload size={16} className="mr-2" />
+                        Select Files
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept=".jpg,.jpeg,.png,.nii"
+                          multiple
+                          onChange={handleFileUpload} 
+                        />
+                      </div>
+                    </label>
+
+                    <button 
+                      className="flex-1 flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                      onClick={handleConversion}
+                      disabled={!inputImages.length || isLoading}
+                    >
+                      {isLoading 
+                        ? <RefreshCw size={16} className="mr-2 animate-spin" /> 
+                        : <ArrowRight size={16} className="mr-2" />
+                      }
+                      Convert
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          </>
-        )}
+
+                {error && (
+                  <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-red-700">{error}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Image Preview Area */}
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="rounded-lg border border-gray-200 overflow-hidden">
+                      <div className="bg-gray-50 p-3 border-b border-gray-200">
+                        <h3 className="text-sm font-medium text-gray-700">Input Image</h3>
+                      </div>
+                      <div 
+                        className="h-64 bg-gray-50 flex items-center justify-center"
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                      >
+                        {previewUrls[currentImageIndex] ? (
+                          <img 
+                            src={previewUrls[currentImageIndex]} 
+                            alt="Input" 
+                            className="max-w-full max-h-full object-contain" 
+                          />
+                        ) : outputImages[currentImageIndex] ? (
+                          <img 
+                            src={outputImages[currentImageIndex]} 
+                            alt="Input (from output fallback)" 
+                            className="max-w-full max-h-full object-contain opacity-70" 
+                          />
+                        ) : (
+                          <div className="text-center p-4 text-gray-500">
+                            <Upload size={32} className="mx-auto mb-3" />
+                            <p>Drag and drop or select files</p>
+                            <p className="text-xs mt-1">Supports: JPG, PNG, NIfTI</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-gray-200 overflow-hidden">
+                      <div className="bg-gray-50 p-3 border-b border-gray-200">
+                        <h3 className="text-sm font-medium text-gray-700">Output Image</h3>
+                      </div>
+                      <div className="h-64 bg-gray-50 flex items-center justify-center">
+                        {isLoading ? (
+                          <div className="text-center text-gray-500">
+                            <RefreshCw size={32} className="mx-auto mb-3 animate-spin" />
+                            <p>Processing image...</p>
+                          </div>
+                        ) : outputImages[currentImageIndex] ? (
+                          <img 
+                            src={outputImages[currentImageIndex]} 
+                            alt="Output" 
+                            className="max-w-full max-h-full object-contain" 
+                          />
+                        ) : (
+                          <div className="text-center p-4 text-gray-400">
+                            <p>Converted image will appear here</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Image Navigation */}
+                  {inputImages.length > 0 && (
+                    <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <button
+                        className="p-2 rounded-md bg-white border border-gray-300 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={handlePrevImage}
+                        disabled={currentImageIndex === 0}
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      
+                      <div className="text-center">
+                        <p className="text-sm text-gray-700">
+                          Image {currentImageIndex + 1} of {inputImages.length}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate max-w-xs">
+                          {inputImages[currentImageIndex]?.name}
+                        </p>
+                      </div>
+
+                      <button
+                        className="p-2 rounded-md bg-white border border-gray-300 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={handleNextImage}
+                        disabled={currentImageIndex === inputImages.length - 1}
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Volume Viewer */}
+                  {volumeSlices.length > 0 && (
+                    <div className="mt-6 rounded-lg border border-gray-200 overflow-hidden">
+                      <div className="bg-gray-50 p-3 border-b border-gray-200">
+                        <h3 className="text-sm font-medium text-gray-700">3D Volume Viewer</h3>
+                      </div>
+                      <div className="p-4">
+                        <VolumeViewer slices={volumeSlices} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
         {/* Segmentation Panel (BraTS Only) */}
         {activeTab === 'segmentation' && (
@@ -713,167 +720,169 @@ const MedicalImageConverter = () => {
           </div>
         )}
 
-        {/* Always visible info tabs at the bottom */}
-        <div className="mt-8">
-          {/* Tab Headers */}
-          <div className="flex border-b border-gray-700">
-            <button
-              className={`px-4 py-2 font-medium ${infoTab === 'metrics' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-              onClick={() => setInfoTab('metrics')}
-            >
-              Metrics
-            </button>
-            <button
-              className={`px-4 py-2 font-medium ${infoTab === 'performance' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-              onClick={() => setInfoTab('performance')}
-            >
-              Performance
-            </button>
-            <button
-              className={`px-4 py-2 font-medium ${infoTab === 'architecture' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-              onClick={() => setInfoTab('architecture')}
-            >
-              Architecture
-            </button>
-            <button
-              className={`px-4 py-2 font-medium ${infoTab === 'histogram' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-              onClick={() => setInfoTab('histogram')}
-            >
-              Compare
-            </button>
-            <button
-              className={`px-4 py-2 font-medium ${infoTab === 'details' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-              onClick={() => setInfoTab('details')}
-            >
-              Details
-            </button>
-            <button
-              className={`px-4 py-2 font-medium ${infoTab === 'settings' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-              onClick={() => setInfoTab('settings')}
-            >
-              Settings
-            </button>
-          </div>
-          
-          {/* Tab Content */}
-          <div className="p-4 bg-gray-700 rounded-b">
-            {infoTab === 'metrics' && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gray-800 p-4 rounded">
-                  <h3 className="text-center text-gray-400 mb-1">SSIM</h3>
-                  <p className="text-center text-2xl font-bold">
-                    {metrics ? metrics.ssim.toFixed(4) : '–'}
-                  </p>
-                  <p className="text-center text-xs text-gray-500">Structural Similarity</p>
-                </div>
-                
-                <div className="bg-gray-800 p-4 rounded">
-                  <h3 className="text-center text-gray-400 mb-1">PSNR</h3>
-                  <p className="text-center text-2xl font-bold">
-                    {metrics ? `${metrics.psnr.toFixed(2)} dB` : '–'}
-                  </p>
-                  <p className="text-center text-xs text-gray-500">Peak Signal-to-Noise Ratio</p>
-                </div>
+          {/* Info Tabs */}
+          <div className="border-t border-gray-200">
+            <div className="flex overflow-x-auto">
+              <button
+                onClick={() => setInfoTab('metrics')}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
+                  infoTab === 'metrics'
+                    ? 'text-blue-600 border-b-2 border-blue-500'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Quality Metrics
+              </button>
+              <button
+                onClick={() => setInfoTab('performance')}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
+                  infoTab === 'performance'
+                    ? 'text-blue-600 border-b-2 border-blue-500'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Performance
+              </button>
+              <button
+                onClick={() => setInfoTab('architecture')}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
+                  infoTab === 'architecture'
+                    ? 'text-blue-600 border-b-2 border-blue-500'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Architecture
+              </button>
+              <button
+                onClick={() => setInfoTab('histogram')}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
+                  infoTab === 'histogram'
+                    ? 'text-blue-600 border-b-2 border-blue-500'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Intensity Analysis
+              </button>
+              <button
+                onClick={() => setInfoTab('details')}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
+                  infoTab === 'details'
+                    ? 'text-blue-600 border-b-2 border-blue-500'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Details
+              </button>
+              <button
+                onClick={() => setInfoTab('settings')}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
+                  infoTab === 'settings'
+                    ? 'text-blue-600 border-b-2 border-blue-500'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Settings
+              </button>
+            </div>
 
-                
-                <div className="bg-gray-800 p-4 rounded">
-                  <h3 className="text-center text-gray-400 mb-1">MSE</h3>
-                  <p className="text-center text-2xl font-bold">
-                    {metrics?.mse != null ? metrics.mse.toFixed(2) : '–'}
-                  </p>
-                  <p className="text-center text-xs text-gray-500">Mean Squared Error</p>
-                </div>
-                
-                <div className="bg-gray-800 p-4 rounded">
-                  <h3 className="text-center text-gray-400 mb-1">Model</h3>
-                  <p className="text-center text-sm">Multi-Input U-Net</p>
-                  <p className="text-center text-xs text-gray-500">Architecture</p>
-                </div>
-                
-                <div className="bg-gray-800 p-4 rounded">
-                  <h3 className="text-center text-gray-400 mb-1">LPIPS</h3>
-                  <p className="text-center text-2xl font-bold">
-                    {metrics?.lpips != null
-                      ? metrics.lpips.toFixed(4)
-                      : '–'
-                    }
-                  </p>
-                  <p className="text-center text-xs text-gray-500">
-                    Learned Perceptual Image Patch Similarity
-                  </p>
-                </div>
+            <div className="p-6">
+              {infoTab === 'metrics' && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p className="text-sm text-blue-600 font-medium">SSIM</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {metrics ? metrics.ssim.toFixed(4) : '–'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Structural Similarity Index</p>
+                  </div>
 
-                                
-                <div className="bg-gray-800 p-4 rounded">
-                  <h3 className="text-center text-gray-400 mb-1">Processing Time</h3>
-                  <p className="text-center text-2xl font-bold">
-                    {metrics?.time ? `${metrics.time.toFixed(2)}s` : '–'}
-                  </p>
-                  <p className="text-center text-xs text-gray-500">Conversion Duration</p>
-                </div>
-              </div>
-            )}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p className="text-sm text-blue-600 font-medium">PSNR</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {metrics ? `${metrics.psnr.toFixed(2)} dB` : '–'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Peak Signal-to-Noise Ratio</p>
+                  </div>
 
-            {infoTab === 'performance' && (
-              <div className="text-gray-300 space-y-8">
-                <div>
-                  <h3 className="text-lg font-semibold text-yellow-300 mb-2">
-                    Performance Comparison
-                  </h3>
-                  <img
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p className="text-sm text-blue-600 font-medium">LPIPS</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {metrics?.lpips != null ? metrics.lpips.toFixed(4) : '–'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Perceptual Similarity</p>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p className="text-sm text-blue-600 font-medium">Model</p>
+                    <p className="text-lg font-semibold text-gray-800 mt-1">Multi-Input U-Net</p>
+                    <p className="text-xs text-gray-500 mt-1">Architecture in use</p>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p className="text-sm text-blue-600 font-medium">Processing Time</p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {metrics?.time ? `${metrics.time.toFixed(2)}s` : '–'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Avg. Conversion Duration</p>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p className="text-sm text-blue-600 font-medium">Model Version</p>
+                    <p className="text-lg font-semibold text-gray-800 mt-1">v1.2.0</p>
+                    <p className="text-xs text-gray-500 mt-1">Deployed backend version</p>
+                  </div>
+                </div>
+              )}
+
+              {infoTab === 'performance' && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold text-gray-800">Model Benchmarking</h3>
+                  <img 
                     src="/assets/Model_Comparison_Chart.png"
-                    alt="Model Performance Comparison"
-                    className="w-full rounded border border-gray-600"
+                    alt="Model Comparison"
+                    className="w-full rounded-lg border border-gray-200"
                   />
-                  <p className="text-sm text-gray-400 mt-1">
-                    Scaled SSIM (×100) and PSNR scores for all tested models. Multi-Input U-Net shows superior performance and stability across both metrics, while other models like cGAN were discarded due to training instability or dataset mismatch.
+                  <p className="text-sm text-gray-600">
+                    Comparative chart showcasing SSIM and PSNR scores for evaluated models. Multi-Input U-Net delivers superior perceptual and structural fidelity, outperforming GAN variants in stability and precision across test datasets.
                   </p>
                 </div>
-              </div>
-            )}
+              )}
 
-            {infoTab === 'architecture' && (
-              <div className="text-gray-300 space-y-8">
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-300 mb-2">
-                    Model Architecture Diagram
-                  </h3>
-                  <img
-                    src="/assets/Model_Architecture_Diagram.png"
-                    alt="Architecture Overview"
-                    className="w-full rounded border border-gray-600"
-                  />
-                  <p className="text-sm text-gray-400 mt-1">
-                    The architecture features a multi-modal U-Net generator taking in T1N, T1C and T2W, followed by a segmentation head to jointly output T2-FLAIR and tumour map. This dual-path strategy enforces structural alignment.
-                  </p>
+              {infoTab === 'architecture' && (
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Model Architecture</h3>
+                    <img 
+                      src="/assets/Model_Architecture_Diagram.png"
+                      alt="U-Net Architecture"
+                      className="w-full rounded-lg border border-gray-200"
+                    />
+                    <p className="text-sm text-gray-600 mt-2">
+                      The multi-input U-Net receives three MRI modalities (T1n, T1ce, T2w) and jointly predicts T2-FLAIR and segmentation output, enforcing modality alignment and multi-scale attention across encoder-decoder stages.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Workflow Pipeline</h3>
+                    <img 
+                      src="/assets/Workflow_Diagram.png"
+                      alt="Workflow Diagram"
+                      className="w-full rounded-lg border border-gray-200"
+                    />
+                    <p className="text-sm text-gray-600 mt-2">
+                      Step-by-step pipeline: input loading → preprocessing → model inference → output decoding → overlay rendering. Integrated into our full-stack system with Gradio, Torch, and NIfTI visualization support.
+                    </p>
+                  </div>
                 </div>
+              )}
 
-                <div>
-                  <h3 className="text-lg font-semibold text-green-300 mb-2">
-                    Workflow Pipeline
-                  </h3>
-                  <img
-                    src="/assets/Workflow_Diagram.png"
-                    alt="Workflow Pipeline"
-                    className="w-full rounded border border-gray-600"
-                  />
-                  <p className="text-sm text-gray-400 mt-1">
-                    Visual summary of the full conversion process from NIfTI input → preprocessing → model inference → segmentation and final visualisation.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {infoTab === 'histogram' && (
-              <div className="text-gray-300 space-y-12">
-                <div>
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-semibold text-blue-300">
-                      Compare Pixel Intensity
-                    </h3>
-                    <label className="flex items-center px-3 py-1.5 bg-blue-600 text-sm rounded cursor-pointer hover:bg-blue-700 transition">
+              {infoTab === 'histogram' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold text-gray-800">Intensity Distribution Comparison</h3>
+                    <label className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
                       <Upload size={14} className="mr-1.5" />
-                      Upload Target
+                      Upload Reference
                       <input 
                         type="file" 
                         className="hidden" 
@@ -882,79 +891,127 @@ const MedicalImageConverter = () => {
                       />
                     </label>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Current Output */}
-                    <div className="flex flex-col items-center">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Generated Output</h4>
                       {outputImages[currentImageIndex] ? (
                         <PixelHistogram 
                           imageUrl={outputImages[currentImageIndex]}
-                          label="Generated Output"
-                          color="#10B981"
+                          label=""
+                          color="#3B82F6"
                         />
                       ) : (
-                        <div className="w-full h-[300px] bg-gray-800 rounded border border-gray-700 flex items-center justify-center text-gray-400">
+                        <div className="h-64 flex items-center justify-center text-gray-400">
                           <p>Convert an image to see distribution</p>
                         </div>
                       )}
                     </div>
 
-                    {/* Reference Image */}
-                    <div className="flex flex-col items-center">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Reference Image</h4>
                       {targetImageUrl ? (
                         <PixelHistogram 
                           imageUrl={targetImageUrl}
-                          label="Target Image"
-                          color="#3B82F6"
+                          label=""
+                          color="#10B981"
                         />
                       ) : (
-                        <div className="w-full h-[300px] bg-gray-800 rounded border border-gray-700 flex items-center justify-center text-gray-400">
-                          <p>Upload a target image</p>
+                        <div className="h-64 flex items-center justify-center text-gray-400">
+                          <p>Upload a reference image</p>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
                       
             {infoTab === 'details' && (
-              <div className="text-gray-300 space-y-2">
-                <p><span className="font-medium">Input Format:</span> {inputImages.length ? inputImages[0].type : "-"}</p>
-                <p><span className="font-medium">Output Format:</span> JPEG</p>
-                <p><span className="font-medium">Model Version:</span> v1.2.0</p>
-                <p><span className="font-medium">Conversion Type:</span> {conversionOptions.find(opt => opt.value === conversionType)?.label || conversionType}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-700 mb-1 font-medium">Input Format</p>
+                  <p className="text-lg text-gray-800">
+                    {inputImages.length ? inputImages[0].type : '–'}
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-700 mb-1 font-medium">Output Format</p>
+                  <p className="text-lg text-gray-800">{imageFormat.toUpperCase()}</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-700 mb-1 font-medium">Model Version</p>
+                  <p className="text-lg text-gray-800">v1.2.0</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-700 mb-1 font-medium">Conversion Type</p>
+                  <p className="text-lg text-gray-800">
+                    {conversionOptions.find(opt => opt.value === conversionType)?.label || conversionType}
+                  </p>
+                </div>
               </div>
             )}
             
             {infoTab === 'settings' && (
-              <div className="text-gray-300 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Quality Level</label>
-                  <input type="range" min="1" max="100" defaultValue="90" className="w-full" />
+              <div className="space-y-6">
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Quality Level
+                  </label>
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="100" 
+                    defaultValue="90" 
+                    className="w-full accent-blue-500"
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Inference Parameters</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input type="checkbox" className="mr-2" defaultChecked /> 
+
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Inference Parameters
+                  </label>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <label className="flex items-center text-sm text-gray-700">
+                      <input 
+                        type="checkbox" 
+                        className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                        defaultChecked 
+                      />
                       Higher Accuracy
                     </label>
-                    <label className="flex items-center">
-                      <input type="checkbox" className="mr-2" /> 
+                    <label className="flex items-center text-sm text-gray-700">
+                      <input 
+                        type="checkbox" 
+                        className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
                       Post-processing
                     </label>
                   </div>
                 </div>
               </div>
             )}
+
           </div>
         </div>
-
-        <div className="mt-4 text-sm text-gray-400">
-          <p>* This demo displays the uploaded image as a result for presentation purposes.</p>
-          <p>* In the actual application, conversion would be performed via a backend API.</p>
-        </div>
       </div>
+    </div>
+  </main>
+
+      {/* Footer */}
+      <footer className="bg-white py-4 px-6 border-t border-gray-200">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+          <p className="text-sm text-gray-500">© 2025 MDS16. Monash University. For research use only.</p>
+          <div className="mt-2 md:mt-0">
+            <button className="text-sm text-gray-500 hover:text-gray-700">Terms</button>
+            <span className="mx-2 text-gray-300">•</span>
+            <button className="text-sm text-gray-500 hover:text-gray-700">Privacy</button>
+            <span className="mx-2 text-gray-300">•</span>
+            <button className="text-sm text-gray-500 hover:text-gray-700">Help</button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
