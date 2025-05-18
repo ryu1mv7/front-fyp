@@ -4,6 +4,7 @@ import { Upload, ArrowRight, RefreshCw, ChevronLeft, ChevronRight } from 'lucide
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Segmentation from './Segmentation';
+import IXISegmentation from './IXISegmentation';
 
 const PixelHistogram = ({ imageUrl, label, color }) => {
   const canvasRef = useRef(null);
@@ -376,7 +377,6 @@ const MedicalImageConverter = () => {
       {/* Navigation Bar */}
       <div className="w-full bg-gray-800 p-4 flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold">Medical Image Converter</h1>
-        
         {/* User Info and Dropdown */}
         <div className="relative">
           <div 
@@ -430,6 +430,12 @@ const MedicalImageConverter = () => {
                 </button>
                 <button 
                   className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                  onClick={() => navigate('/bookmark')}
+                >
+                  ★ Bookmarks
+                </button>
+                <button 
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-700"
                   onClick={() => navigate('/settings')}
                 >
                   Settings
@@ -452,19 +458,37 @@ const MedicalImageConverter = () => {
       <div className="w-full max-w-4xl bg-gray-800 rounded-lg p-6 shadow-lg">
         <h2 className="text-xl font-bold mb-6">Multi-modal Medical Image Synthesis and Translation</h2>
         
-        {/* Main Tabs: Conversion vs Segmentation */}
-        <div className="flex border-b border-gray-700 mb-6">
+        {/* Main Tabs: Conversion vs Segmentation vs Overlay */}
+        <div className="flex gap-4 border-b border-gray-700 mb-6">
           <button
-            className={`px-6 py-3 font-medium ${activeTab === 'conversion' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
             onClick={() => setActiveTab('conversion')}
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'conversion'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
           >
             Conversion
           </button>
           <button
-            className={`px-6 py-3 font-medium ${activeTab === 'segmentation' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
             onClick={() => setActiveTab('segmentation')}
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'segmentation'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
           >
             Segmentation
+          </button>
+          <button
+            onClick={() => setActiveTab('overlay')}
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'overlay'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            Overlay
           </button>
         </div>
 
@@ -613,13 +637,23 @@ const MedicalImageConverter = () => {
           </>
         )}
 
-        {/* Segmentation Panel */}
+        {/* Segmentation Panel (BraTS Only) */}
         {activeTab === 'segmentation' && (
           <div className="w-full max-w-4xl bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-white mb-4">BraTS Tumor Segmentation</h2>
             <Segmentation />
           </div>
         )}
-        
+
+        {/* Overlay Panel (IXI Tissue Segmentation) */}
+        {activeTab === 'overlay' && (
+          <div className="w-full max-w-6xl bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-white mb-4">Tissue Overlay (IXI Dataset)</h2>
+            <p className="text-sm text-gray-400 mb-4">Visualizes CSF, gray matter, white matter, and background on mid-slice of T1 MRI.</p>
+            <IXISegmentation />
+          </div>
+        )}
+
         {/* Always visible info tabs at the bottom */}
         <div className="mt-8">
           {/* Tab Headers */}

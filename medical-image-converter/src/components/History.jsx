@@ -29,6 +29,15 @@ const History = () => {
     }
   };
 
+  const handleBookmark = (entry) => {
+    const prev = JSON.parse(localStorage.getItem('bookmarkedResults') || '[]');
+    const isDuplicate = prev.some(e => e.timestamp === entry.timestamp);
+    if (isDuplicate) return alert("Already bookmarked!");
+
+    localStorage.setItem('bookmarkedResults', JSON.stringify([entry, ...prev]));
+    alert("★ Bookmarked successfully!");
+  };
+
   return (
     <div className="p-6 text-white bg-gray-900 min-h-screen">
       {/* Header */}
@@ -70,22 +79,40 @@ const History = () => {
             >
               {/* Tag */}
               <span className={`text-xs font-semibold px-2 py-1 mb-2 rounded-full w-max
-                ${entry.mode === 'segmentation'
-                  ? 'bg-blue-900 text-blue-300'
-                  : 'bg-purple-900 text-purple-300'
+                ${entry.mode === 'conversion'
+                  ? 'bg-purple-900 text-purple-300'
+                  : entry.mode === 'overlay'
+                    ? 'bg-yellow-900 text-yellow-300'
+                    : 'bg-blue-900 text-blue-300'
                 }`}
               >
-                {entry.mode.charAt(0).toUpperCase() + entry.mode.slice(1)}
+                {entry.mode === 'overlay' ? 'Overlay Segmentation' : entry.mode.charAt(0).toUpperCase() + entry.mode.slice(1)}
               </span>
 
-              {/* Image */}
-              <div className="overflow-hidden rounded-lg border border-gray-600 mb-3">
-                <img
-                  src={entry.outputImage}
-                  alt="Output"
-                  className="w-full object-contain transition-transform duration-200 hover:scale-105"
-                />
-              </div>
+              {/* Main Image(s) */}
+              {entry.mode === 'overlay' ? (
+                <>
+                  {/* Show only final overlay on input */}
+                  {entry.hardOverlay && (
+                    <div className="overflow-hidden rounded-lg border border-gray-600 mb-3">
+                      <img
+                        src={entry.hardOverlay}
+                        alt="Overlay on Input"
+                        className="w-full object-contain transition-transform duration-200 hover:scale-105"
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-gray-600 mb-3">
+                  <img
+                    src={entry.outputImage}
+                    alt="Output"
+                    className="w-full object-contain transition-transform duration-200 hover:scale-105"
+                  />
+                </div>
+              )}
+
 
               {/* Extra Output */}
               {entry.extraImage && (
@@ -136,6 +163,12 @@ const History = () => {
                 className="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm w-full"
               >
                 Download Output
+              </button>
+              <button
+                onClick={() => handleBookmark(entry)}
+                className="mt-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-1 rounded text-sm w-full"
+              >
+                ★ Bookmark
               </button>
             </div>
           ))}

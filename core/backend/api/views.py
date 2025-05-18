@@ -1,5 +1,6 @@
 import io
 import base64
+import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import torch
@@ -16,6 +17,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .networks import MODELS, UNet2DGeneratorCheckpointMatch
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 # --- Initialise LPIPS metric ---
 lpips_fn = lpips.LPIPS(net='alex')
@@ -212,3 +218,135 @@ class SegmentImageView(APIView):
             print("Segmentation failed with error:")
             traceback.print_exc()
             return Response({'error': f"{type(e).__name__}: {e}"}, status=500)
+        
+class IXISegmentView(APIView):
+    def post(self, request):
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as mcolors
+
+        def to_b64(fig):
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', bbox_inches='tight')
+            buf.seek(0)
+            return "data:image/png;base64," + base64.b64encode(buf.read()).decode()
+
+        def load_slice(file):
+            suffix = '.nii.gz' if file.name.endswith('.nii.gz') else '.nii'
+            tf = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+            for chunk in file.chunks():
+                tf.write(chunk)
+            tf.close()
+
+            try:
+                volume = nib.load(tf.name).get_fdata()
+                mid_slice = volume[:, :, volume.shape[2] // 2]
+                norm = (mid_slice - np.min(mid_slice)) / (np.ptp(mid_slice) + 1e-6)
+                return norm
+            finally:
+                os.remove(tf.name)
+
+        try:
+            print("=== POST /api/ixi-segment/ has been triggered ===")
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            t1_slice = load_slice(request.FILES['t1'])
+            input_tensor = torch.tensor(t1_slice, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+            input_tensor = F.interpolate(input_tensor, size=(256, 256), mode='bilinear', align_corners=False).to(device)
+
+            # === Load model ===
+            class IXISimpleUNet(nn.Module):
+                def __init__(self, in_channels=1, out_channels=4):
+                    super().__init__()
+                    self.encoder1 = nn.Sequential(nn.Conv2d(in_channels, 32, 3, padding=1), nn.ReLU(),
+                                                  nn.Conv2d(32, 32, 3, padding=1), nn.ReLU())
+                    self.encoder2 = nn.Sequential(nn.Conv2d(32, 64, 3, padding=1), nn.ReLU(),
+                                                  nn.Conv2d(64, 64, 3, padding=1), nn.ReLU())
+                    self.bottleneck = nn.Sequential(nn.Conv2d(64, 128, 3, padding=1), nn.ReLU(),
+                                                    nn.Conv2d(128, 128, 3, padding=1), nn.ReLU())
+                    self.up2 = nn.ConvTranspose2d(128, 64, 2, 2)
+                    self.decoder2 = nn.Sequential(nn.Conv2d(128, 64, 3, padding=1), nn.ReLU(),
+                                                  nn.Conv2d(64, 64, 3, padding=1), nn.ReLU())
+                    self.up1 = nn.ConvTranspose2d(64, 32, 2, 2)
+                    self.decoder1 = nn.Sequential(nn.Conv2d(64, 32, 3, padding=1), nn.ReLU(),
+                                                  nn.Conv2d(32, 32, 3, padding=1), nn.ReLU())
+                    self.final = nn.Conv2d(32, out_channels, 1)
+
+                def forward(self, x):
+                    e1 = self.encoder1(x)
+                    e2 = self.encoder2(F.max_pool2d(e1, 2))
+                    b = self.bottleneck(F.max_pool2d(e2, 2))
+                    d2 = self.decoder2(torch.cat([self.up2(b), e2], dim=1))
+                    d1 = self.decoder1(torch.cat([self.up1(d2), e1], dim=1))
+                    return self.final(d1)
+
+            model = IXISimpleUNet().to(device)
+            model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models', 'ixi_multiclass_model.pt')
+            state = torch.load(model_path, map_location=device)
+            print("== IXI Model File Debug ==")
+            print("Type of loaded object:", type(state))
+            if isinstance(state, dict):
+                print("Top-level keys:", list(state.keys())[:10])
+                for key in list(state.keys())[:5]:
+                    print(f"  → {key}")
+            else:
+                print("Loaded object is not a dict.")
+
+            # Try to extract correct key
+            if 'state_dict' in state:
+                state = state['state_dict']
+            elif 'model' in state:
+                state = state['model']
+            elif isinstance(state, dict):
+                state = state  # Use directly
+            else:
+                raise RuntimeError("Unrecognized model format")
+
+            model.load_state_dict(state, strict=False)
+            model.eval()
+
+            # === Inference ===
+            with torch.no_grad():
+                output = torch.sigmoid(model(input_tensor))[0]  # shape: [4, H, W]
+
+            # === Overlays ===
+            titles = ['CSF', 'Gray Matter', 'White Matter', 'BG/Other']
+            colors = [(1, 0, 0, 0.4), (0, 1, 0, 0.4), (0, 0, 1, 0.4), (1, 1, 0, 0.4)]
+            overlays = []
+            for i in range(4):
+                fig, ax = plt.subplots()
+                ax.imshow(input_tensor[0, 0].cpu(), cmap='gray')
+                ax.imshow(output[i].cpu(), cmap=mcolors.ListedColormap([colors[i]]), alpha=output[i].cpu().numpy())
+                ax.axis('off')
+                overlays.append(to_b64(fig))
+                plt.close(fig)
+
+            # === Hard segmentation map ===
+            pred_labels = torch.argmax(output, dim=0).cpu().numpy()
+            cmap = mcolors.ListedColormap([(0, 0, 0), (0, 0, 1), (0, 1, 0), (1, 0, 0)])
+            bounds = list(range(5))
+            norm = mcolors.BoundaryNorm(bounds, cmap.N)
+
+            fig1, ax1 = plt.subplots()
+            ax1.imshow(pred_labels, cmap=cmap, norm=norm)
+            ax1.axis('off')
+            hard_seg_b64 = to_b64(fig1)
+            plt.close(fig1)
+
+            # === Overlay hard labels ===
+            fig2, ax2 = plt.subplots()
+            ax2.imshow(input_tensor[0, 0].cpu(), cmap='gray')
+            ax2.imshow(pred_labels, cmap=cmap, norm=norm, alpha=0.5)
+            ax2.axis('off')
+            hard_overlay_b64 = to_b64(fig2)
+            plt.close(fig2)
+
+            return Response({
+                'overlays': overlays,
+                'hardSeg': hard_seg_b64,
+                'hardOverlay': hard_overlay_b64
+            })
+        
+        except Exception as e:
+            import traceback
+            print("Full traceback:")
+            traceback.print_exc()
+            return Response({'error': f'{type(e).__name__}: {e}'}, status=500)

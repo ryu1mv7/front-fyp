@@ -8,6 +8,7 @@ import MedicalImageConverter from './components/MedicalImageConverter';
 import Settings from './components/Settings';
 import Landing from './components/Landing';
 import History from './components/History';
+import Bookmark from './components/Bookmark';
 
 function AppRoutes() {
   const { currentUser } = useAuth();
@@ -45,6 +46,14 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <History />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/bookmark"
+        element={
+          <PrivateRoute>
+            <Bookmark />
           </PrivateRoute>
         }
       />
