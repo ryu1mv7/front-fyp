@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Upload, ArrowRight, RefreshCw, Folder, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, ArrowRight, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 //for firebase
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -167,7 +167,7 @@ const PixelHistogram = ({ imageUrl, label, color }) => {
     
     img.src = imageUrl;
     return () => resizeObserver.disconnect();
-  }, [imageUrl, color]);
+  }, [imageUrl, color, drawHistogram]);
 
   return (
     <div className="flex flex-col items-center w-full">
@@ -195,7 +195,7 @@ const MedicalImageConverter = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [targetImage, settargetImage] = useState(null);
+  // const [targetImage, settargetImage] = useState(null);
   const [targetImageUrl, settargetImageUrl] = useState(null);
   
   const [metrics, setMetrics] = useState(null);
@@ -324,6 +324,18 @@ const MedicalImageConverter = () => {
           lpips: allMetrics.reduce((acc, m) => acc + m.lpips, 0) / allMetrics.length,
         };
         setMetrics(avgMetrics);
+        const historyEntry = {
+          mode: 'conversion',
+          conversionType,
+          modelName: 'Multi-Input U-Net',
+          outputImage: results[currentImageIndex], // or just data.result inside the loop
+          metrics: allMetrics[currentImageIndex],
+          timestamp: Date.now()
+        };
+
+        const currentHistory = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
+        localStorage.setItem('conversionHistory', JSON.stringify([historyEntry, ...currentHistory]));
+
       }
   
     } catch (err) {
@@ -410,7 +422,10 @@ const MedicalImageConverter = () => {
                 <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
                   Dashboard
                 </button>
-                <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
+                <button 
+                  className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                  onClick={() => navigate('/history')}
+                >
                   History
                 </button>
                 <button 

@@ -46,6 +46,17 @@ const Segmentation = () => {
         t2fUrl: data.t2f,
         segUrl: data.seg,
       });
+        const historyEntry = {
+        mode: 'segmentation',
+        modelName: 'Multi-Input U-Net',
+        outputImage: data.seg,  // or data.t2f if you want both
+        metrics: {},            // optional: if you calculated SSIM, PSNR etc.
+        timestamp: Date.now()
+        };
+
+        const currentHistory = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
+        localStorage.setItem('conversionHistory', JSON.stringify([historyEntry, ...currentHistory]));
+
     } catch (err) {
       setError("Segmentation failed.");
       console.error("Segmentation error:", err);

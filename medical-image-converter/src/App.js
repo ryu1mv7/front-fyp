@@ -7,6 +7,7 @@ import ForgotPassword from './components/ForgotPassword';
 import MedicalImageConverter from './components/MedicalImageConverter';
 import Settings from './components/Settings';
 import Landing from './components/Landing';
+import History from './components/History';
 
 function AppRoutes() {
   const { currentUser } = useAuth();
@@ -36,6 +37,14 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <MedicalImageConverter />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/history"
+        element={
+          <PrivateRoute>
+            <History />
           </PrivateRoute>
         }
       />
