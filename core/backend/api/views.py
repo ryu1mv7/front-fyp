@@ -174,7 +174,8 @@ class SegmentImageView(APIView):
             input_tensor = input_tensor.to(device)
 
             # Load model
-            model_path = 'public/models/cgan_t2f_seg.pt'
+            BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            model_path = os.path.join(BASE_DIR, 'public', 'models', 'cgan_t2f_seg.pt')
             assert os.path.exists(model_path), f"Model not found: {model_path}"
 
             model = UNet2DGeneratorCheckpointMatch(in_channels=3, out_channels=2)
