@@ -241,7 +241,7 @@ class SegmentImageView(APIView):
 
             model = UNet2DGeneratorCheckpointMatch(in_channels=3, out_channels=2)
             
-            # 🧠 Fix: Load 'generator' subkey
+            # Fix: Load 'generator' subkey
             state = torch.load(model_path, map_location='cpu')
             if 'generator' in state:
                 print("Using nested state['generator']")
@@ -254,6 +254,10 @@ class SegmentImageView(APIView):
 
             print("STATE KEYS:", list(state.keys())[:5])
             model.load_state_dict(state, strict=False)
+            missing, unexpected = model.load_state_dict(state, strict=False)
+            print("MISSING KEYS:", missing)
+            print("UNEXPECTED KEYS:", unexpected)
+
             model.to(device)
             model.eval()
             
@@ -268,11 +272,15 @@ class SegmentImageView(APIView):
             print("SEG RANGE:", seg.min().item(), seg.max().item())
 
             def to_b64(t):
-                arr = (t.squeeze().cpu().numpy() * 255).astype(np.uint8)
-                img = Image.fromarray(arr)
-                buf = io.BytesIO()
-                img.save(buf, format='PNG')
-                return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+                try:
+                    arr = (t.squeeze().cpu().numpy() * 255).astype(np.uint8)
+                    img = Image.fromarray(arr)
+                    buf = io.BytesIO()
+                    img.save(buf, format='PNG')
+                    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+                except Exception as e:
+                    print("Error converting to b64:", str(e))
+                    raise
 
             return Response({
                 't2f': to_b64(t2f),
