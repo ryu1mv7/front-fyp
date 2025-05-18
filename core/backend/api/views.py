@@ -87,18 +87,37 @@ class ConvertImageView(APIView):
                         tf.write(chunk)
                     tf.close()
                     path = tf.name
+
                     try:
                         nii = nib.load(path)
                         data = nii.get_fdata()
-                        mid_slice = data[:, :, data.shape[2] // 2] if data.ndim == 3 else data
+
+                        # === NEW: Save axial slices for 3D viewer ===
+                        from datetime import datetime
+                        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                        slice_dir = os.path.join("public", "slices", f"slices_{timestamp}")
+                        os.makedirs(slice_dir, exist_ok=True)
+
+                        num_slices = data.shape[2]
+                        slice_urls = []
+
+                        for i in range(num_slices):
+                            slice_path = os.path.join(slice_dir, f"slice_{i}.png")
+                            plt.imsave(slice_path, data[:, :, i], cmap='gray')
+                            slice_urls.append(f"/media/slices/slices_{timestamp}/slice_{i}.png")
+
+                        # For the rest of processing, still return mid-slice
+                        mid_slice = data[:, :, data.shape[2] // 2]
                         norm = (mid_slice - np.min(mid_slice)) / (np.ptp(mid_slice) + 1e-6)
-                        return Image.fromarray((norm * 255).astype(np.uint8)).convert('L')
+                        pil_img = Image.fromarray((norm * 255).astype(np.uint8)).convert('L')
+                        return pil_img, slice_urls
                     finally:
                         os.remove(path)
+
                 else:
                     return Image.open(file).convert('L')
 
-            img = load_input_image(img_f, image_format)
+            img, slice_urls = load_input_image(img_f, image_format)
             tensor_input = preprocess(img).unsqueeze(0)
 
             with torch.no_grad():
@@ -115,7 +134,10 @@ class ConvertImageView(APIView):
             pil_out = postprocess(out_clamped)
 
             img_f.seek(0)
-            ref_img = load_input_image(img_f, image_format).resize(pil_out.size)
+            
+            ref_img, _ = load_input_image(img_f, image_format)
+            ref_img = ref_img.resize(pil_out.size)
+
             ref_np = np.array(ref_img, dtype=np.float32) / 255.0
             out_np = np.array(pil_out.convert('L'), dtype=np.float32) / 255.0
 
@@ -139,8 +161,10 @@ class ConvertImageView(APIView):
                     'ssim': ssim,
                     'lpips': lpips_val,
                     'histogram': hist.tolist()
-                }
+                },
+                'sliceUrls': slice_urls if image_format == 'nii' else []  # only if .nii
             })
+        
         except Exception as e:
             import traceback
             print(traceback.format_exc())
@@ -350,3 +374,12 @@ class IXISegmentView(APIView):
             print("Full traceback:")
             traceback.print_exc()
             return Response({'error': f'{type(e).__name__}: {e}'}, status=500)
+
+def extract_slices(nifti_path, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    img = nib.load(nifti_path)
+    data = img.get_fdata()
+
+    num_slices = data.shape[2]  # axial
+    for i in range(num_slices):
+        plt.imsave(os.path.join(output_dir, f"slice_{i}.png"), data[:, :, i], cmap='gray')

@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Segmentation from './Segmentation';
 import IXISegmentation from './IXISegmentation';
+import VolumeViewer from './VolumeViewer';
 
 const PixelHistogram = ({ imageUrl, label, color }) => {
   const canvasRef = useRef(null);
@@ -201,6 +202,7 @@ const MedicalImageConverter = () => {
   
   const [metrics, setMetrics] = useState(null);
   const [imageFormat, setImageFormat] = useState('png');
+  const [volumeSlices, setVolumeSlices] = useState([]);
 
   const formatOptions = [
     { value: 'png', label: 'PNG / JPG' },
@@ -281,10 +283,12 @@ const MedicalImageConverter = () => {
     setIsLoading(true);
     setError(null);
     setOutputImages([]);
+    setVolumeSlices([]); 
   
     try {
       const results = [];
       const allMetrics = [];
+      let lastSlices = [];
 
       // Process each file
       for (const file of inputImages) {
@@ -313,9 +317,17 @@ const MedicalImageConverter = () => {
         const data = JSON.parse(text);
         results.push(data.result);
         allMetrics.push(data.metrics);
+
+        if (data.sliceUrls?.length) {
+          lastSlices = data.sliceUrls;
+        }
       }
 
       setOutputImages(results);
+      
+      const fullUrls = lastSlices.map(url => `http://localhost:5000${url}`);
+      setVolumeSlices(fullUrls);
+
 
       // Average the metrics across all processed images
       if (allMetrics.length > 0) {
@@ -631,6 +643,13 @@ const MedicalImageConverter = () => {
                   >
                     <ChevronRight size={24} />
                   </button>
+                </div>
+              )}
+
+              {/* Volume Viewer Preview */}
+              {volumeSlices.length > 0 && (
+                <div className="mt-8 bg-gray-800 rounded border border-gray-700 p-4">
+                  <VolumeViewer slices={volumeSlices} />
                 </div>
               )}
             </div>
