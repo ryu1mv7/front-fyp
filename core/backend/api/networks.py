@@ -5,23 +5,15 @@ from torchvision import transforms
 from PIL import Image
 import numpy as np
 
-# ==============================================
-# Path Configuration
-# ==============================================
+# ─── Paths ──────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.join(BASE_DIR, 'models')
+PATH_T1T2 = os.path.join(MODEL_DIR, 'set_200generator.pth')  # T1→T2
+PATH_T2T1 = os.path.join(MODEL_DIR, 'cgan_unet100generator.pth')  # T2→T1 
+PATH_PD2T2 = os.path.join(MODEL_DIR, 'best_gan_model.pth')  # PD→T2
 
-MODEL_PATHS = {
-    't1_to_t2': os.path.join(MODEL_DIR, 'set_200generator.pth'),
-    't2_to_t1': os.path.join(MODEL_DIR, 'cgan_unet100generator.pth'),
-    'pd_to_t2': os.path.join(MODEL_DIR, 'best_gan_model.pth')
-}
-
-# ==============================================
-# Utility Functions
-# ==============================================
+# ─── Weight Initialization ─────────────────────────────────────────────────────
 def init_weights(net, init_type='normal', gain=0.02):
-    """Weight initialization for GANs"""
     def init_func(m):
         classname = m.__class__.__name__
         if hasattr(m, 'weight') and ('Conv' in classname or 'Linear' in classname):
@@ -32,103 +24,69 @@ def init_weights(net, init_type='normal', gain=0.02):
             elif init_type == 'kaiming':
                 nn.init.kaiming_normal_(m.weight.data, a=0, mode='fan_in')
             else:
-                raise NotImplementedError(f"Initialization method [{init_type}] not implemented")
-            
+                raise NotImplementedError(f"initialisation method [{init_type}] is not implemented")
             if hasattr(m, 'bias') and m.bias is not None:
                 nn.init.constant_(m.bias.data, 0.0)
-                
         elif 'BatchNorm2d' in classname or 'InstanceNorm2d' in classname:
             if hasattr(m, 'weight') and m.weight is not None:
                 nn.init.normal_(m.weight.data, 1.0, gain)
             if hasattr(m, 'bias') and m.bias is not None:
                 nn.init.constant_(m.bias.data, 0.0)
-    
     net.apply(init_func)
 
-# ==============================================
-# Model Components
-# ==============================================
-class ConvBlock(nn.Module):
-    """Standard convolutional block with optional batch norm"""
-    def __init__(self, in_channels, out_channels, kernel_size=4, stride=2, padding=1, 
-                 batch_norm=True, activation='leaky_relu'):
-        super().__init__()
-        layers = [
-            nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, 
-                     bias=not batch_norm)
-        ]
-        
-        if batch_norm:
-            layers.append(nn.InstanceNorm2d(out_channels))
-            
-        if activation == 'leaky_relu':
-            layers.append(nn.LeakyReLU(0.2, inplace=True))
-        elif activation == 'relu':
-            layers.append(nn.ReLU(inplace=True))
-            
-        self.block = nn.Sequential(*layers)
-    
-    def forward(self, x):
-        return self.block(x)
-
-class DeconvBlock(nn.Module):
-    """Standard deconvolutional block with optional dropout"""
-    def __init__(self, in_channels, out_channels, kernel_size=4, stride=2, padding=1, 
-                 dropout=False):
-        super().__init__()
-        layers = [
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding, 
-                              bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        ]
-        
-        if dropout:
-            layers.append(nn.Dropout(0.5))
-            
-        self.block = nn.Sequential(*layers)
-    
-    def forward(self, x):
-        return self.block(x)
-
-# ==============================================
-# Generator Models
-# ==============================================
-class T1ToT2Generator(nn.Module):
-    """U-Net generator for T1 to T2 translation"""
+# ─── Generator for T1->T2 ──────────────────────────────────────────────────────
+class GeneratorT1T2(nn.Module):
     def __init__(self, input_channels=1, output_channels=1):
-        super().__init__()
-        
-        # Encoder
-        self.e1 = ConvBlock(input_channels, 64, batch_norm=False)
-        self.e2 = ConvBlock(64, 128)
-        self.e3 = ConvBlock(128, 256)
-        self.e4 = ConvBlock(256, 512)
-        self.e5 = ConvBlock(512, 512)
-        self.e6 = ConvBlock(512, 512)
-        self.e7 = ConvBlock(512, 512)
-        self.e8 = ConvBlock(512, 512, batch_norm=False)
-        
-        # Decoder
-        self.d1 = DeconvBlock(512, 512, dropout=True)
-        self.d2 = DeconvBlock(1024, 512, dropout=True)
-        self.d3 = DeconvBlock(1024, 512, dropout=True)
-        self.d4 = DeconvBlock(1024, 512)
-        self.d5 = DeconvBlock(1024, 512)
-        self.d6 = DeconvBlock(768, 256)
-        self.d7 = DeconvBlock(384, 128)
-        self.d8 = DeconvBlock(192, 64)
-        
-        # Output
+        super(GeneratorT1T2, self).__init__()
+
+        # Encoder layers
+        self.e1 = self._conv_block(input_channels, 64, batch_norm=False)
+        self.e2 = self._conv_block(64, 128)
+        self.e3 = self._conv_block(128, 256)
+        self.e4 = self._conv_block(256, 512)
+        self.e5 = self._conv_block(512, 512)
+        self.e6 = self._conv_block(512, 512)
+        self.e7 = self._conv_block(512, 512)
+        self.e8 = self._conv_block(512, 512, batch_norm=False)
+
+        # Decoder layers
+        self.d1 = self._deconv_block(512, 512, dropout=True)
+        self.d2 = self._deconv_block(512 + 512, 512, dropout=True)
+        self.d3 = self._deconv_block(512 + 512, 512, dropout=True)
+        self.d4 = self._deconv_block(512 + 512, 512)
+        self.d5 = self._deconv_block(512 + 512, 512)
+        self.d6 = self._deconv_block(512 + 256, 256)
+        self.d7 = self._deconv_block(256 + 128, 128)
+        self.d8 = self._deconv_block(128 + 64, 64)
+
         self.output = nn.Sequential(
             nn.Conv2d(64, output_channels, kernel_size=3, stride=1, padding=1),
             nn.Tanh()
         )
-        
-        init_weights(self)
+        init_weights(self, init_type='normal', gain=0.02)
+
+    def _conv_block(self, in_channels, out_channels, kernel_size=4, stride=2, padding=1, batch_norm=True):
+        layers = []
+        layers.append(nn.Conv2d(in_channels, out_channels,
+                              kernel_size, stride, padding,
+                              bias=not batch_norm))
+        if batch_norm:
+            layers.append(nn.InstanceNorm2d(out_channels))
+        layers.append(nn.LeakyReLU(0.2, inplace=True))
+        return nn.Sequential(*layers)
+
+    def _deconv_block(self, in_channels, out_channels, kernel_size=4, stride=2, padding=1, dropout=False):
+        layers = []
+        layers.append(nn.ConvTranspose2d(in_channels, out_channels,
+                                       kernel_size, stride, padding,
+                                       bias=False))
+        layers.append(nn.InstanceNorm2d(out_channels))
+        layers.append(nn.ReLU(True))
+        if dropout:
+            layers.append(nn.Dropout(0.5))
+        return nn.Sequential(*layers)
 
     def forward(self, x):
-        # Encoder
         e1 = self.e1(x)
         e2 = self.e2(e1)
         e3 = self.e3(e2)
@@ -137,8 +95,6 @@ class T1ToT2Generator(nn.Module):
         e6 = self.e6(e5)
         e7 = self.e7(e6)
         e8 = self.e8(e7)
-        
-        # Decoder with skip connections
         d1 = self.d1(e8)
         d2 = self.d2(torch.cat([d1, e7], 1))
         d3 = self.d3(torch.cat([d2, e6], 1))
@@ -147,47 +103,62 @@ class T1ToT2Generator(nn.Module):
         d6 = self.d6(torch.cat([d5, e3], 1))
         d7 = self.d7(torch.cat([d6, e2], 1))
         d8 = self.d8(torch.cat([d7, e1], 1))
-        
         return self.output(d8)
 
-class T2ToT1Generator(nn.Module):
-    """Conditional U-Net generator for T2 to T1 translation"""
+# ─── Generator for T2->T1 ──────────────────────────────────────────────────────
+class GeneratorT2T1(nn.Module):
     def __init__(self, input_channels=1, output_channels=1):
-        super().__init__()
-        
-        # Encoder
-        self.e1 = ConvBlock(input_channels + 1, 64, batch_norm=False)  # +1 for condition channel
-        self.e2 = ConvBlock(64, 128)
-        self.e3 = ConvBlock(128, 256)
-        self.e4 = ConvBlock(256, 512)
-        self.e5 = ConvBlock(512, 512)
-        self.e6 = ConvBlock(512, 512)
-        self.e7 = ConvBlock(512, 512)
-        self.e8 = ConvBlock(512, 512, batch_norm=False)
-        
-        # Decoder
-        self.d1 = DeconvBlock(512, 512, dropout=True)
-        self.d2 = DeconvBlock(1024, 512, dropout=True)
-        self.d3 = DeconvBlock(1024, 512, dropout=True)
-        self.d4 = DeconvBlock(1024, 512)
-        self.d5 = DeconvBlock(1024, 512)
-        self.d6 = DeconvBlock(768, 256)
-        self.d7 = DeconvBlock(384, 128)
-        self.d8 = DeconvBlock(192, 64)
-        
-        # Output
+        super(GeneratorT2T1, self).__init__()
+
+        # Encoder layers
+        self.e1 = self._conv_block(input_channels + 1, 64, batch_norm=False)
+        self.e2 = self._conv_block(64, 128)
+        self.e3 = self._conv_block(128, 256)
+        self.e4 = self._conv_block(256, 512)
+        self.e5 = self._conv_block(512, 512)
+        self.e6 = self._conv_block(512, 512)
+        self.e7 = self._conv_block(512, 512)
+        self.e8 = self._conv_block(512, 512, batch_norm=False)
+
+        # Decoder layers
+        self.d1 = self._deconv_block(512, 512, dropout=True)
+        self.d2 = self._deconv_block(512 + 512, 512, dropout=True)
+        self.d3 = self._deconv_block(512 + 512, 512, dropout=True)
+        self.d4 = self._deconv_block(512 + 512, 512)
+        self.d5 = self._deconv_block(512 + 512, 512)
+        self.d6 = self._deconv_block(512 + 256, 256)
+        self.d7 = self._deconv_block(256 + 128, 128)
+        self.d8 = self._deconv_block(128 + 64, 64)
+
         self.output = nn.Sequential(
             nn.Conv2d(64, output_channels, kernel_size=3, stride=1, padding=1),
             nn.Tanh()
         )
-        
-        init_weights(self)
+        init_weights(self, init_type='normal', gain=0.02)
+
+    def _conv_block(self, in_channels, out_channels, kernel_size=4, stride=2, padding=1, batch_norm=True):
+        layers = []
+        layers.append(nn.Conv2d(in_channels, out_channels,
+                              kernel_size, stride, padding,
+                              bias=not batch_norm))
+        if batch_norm:
+            layers.append(nn.InstanceNorm2d(out_channels))
+        layers.append(nn.LeakyReLU(0.2, inplace=True))
+        return nn.Sequential(*layers)
+
+    def _deconv_block(self, in_channels, out_channels, kernel_size=4, stride=2, padding=1, dropout=False):
+        layers = []
+        layers.append(nn.ConvTranspose2d(in_channels, out_channels,
+                                       kernel_size, stride, padding,
+                                       bias=False))
+        layers.append(nn.InstanceNorm2d(out_channels))
+        layers.append(nn.ReLU(True))
+        if dropout:
+            layers.append(nn.Dropout(0.5))
+        return nn.Sequential(*layers)
 
     def forward(self, x, label=0):
-        # Create condition tensor
         label_tensor = torch.ones_like(x[:, :1, :, :]) * label
-        
-        # Encoder
         e1 = self.e1(torch.cat([x, label_tensor], dim=1))
         e2 = self.e2(e1)
         e3 = self.e3(e2)
@@ -196,8 +167,6 @@ class T2ToT1Generator(nn.Module):
         e6 = self.e6(e5)
         e7 = self.e7(e6)
         e8 = self.e8(e7)
-        
-        # Decoder with skip connections
         d1 = self.d1(e8)
         d2 = self.d2(torch.cat([d1, e7], 1))
         d3 = self.d3(torch.cat([d2, e6], 1))
@@ -206,84 +175,84 @@ class T2ToT1Generator(nn.Module):
         d6 = self.d6(torch.cat([d5, e3], 1))
         d7 = self.d7(torch.cat([d6, e2], 1))
         d8 = self.d8(torch.cat([d7, e1], 1))
-        
         return self.output(d8)
 
-class PDToT2Generator(nn.Module):
-    """U-Net generator for PD to T2 translation"""
+# ─── U-Net Blocks for PD->T2 ──────────────────────────────────────────────────
+class UNetDownPDT2(nn.Module):
+    def __init__(self, in_ch, out_ch, normalize=True, dropout=0.0):
+        super().__init__()
+        layers = [nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False)]
+        if normalize:    layers.append(nn.BatchNorm2d(out_ch))
+        layers.append(nn.LeakyReLU(0.2, inplace=True))
+        if dropout:      layers.append(nn.Dropout(dropout))
+        self.model = nn.Sequential(*layers)
+    def forward(self, x):
+        return self.model(x)
+
+class UNetUpPDT2(nn.Module):
+    def __init__(self, in_ch, out_ch, dropout=0.0):
+        super().__init__()
+        layers = [
+            nn.ConvTranspose2d(in_ch, out_ch, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+        ]
+        if dropout: layers.append(nn.Dropout(dropout))
+        self.model = nn.Sequential(*layers)
+    def forward(self, x, skip):
+        x = self.model(x)
+        return torch.cat((x, skip), dim=1)
+
+# ─── Generator for PD->T2 ──────────────────────────────────────────────────────
+class GeneratorPDT2(nn.Module):
     def __init__(self, input_channels=1, output_channels=1):
         super().__init__()
-        
-        # Downsampling
-        self.down1 = ConvBlock(input_channels, 64, batch_norm=True, activation='leaky_relu')
-        self.down2 = ConvBlock(64, 128, batch_norm=True, activation='leaky_relu')
-        self.down3 = ConvBlock(128, 256, batch_norm=True, activation='leaky_relu')
-        self.down4 = ConvBlock(256, 512, batch_norm=True, activation='leaky_relu', dropout=0.5)
-        self.down5 = ConvBlock(512, 512, batch_norm=True, activation='leaky_relu', dropout=0.5)
-        self.down6 = ConvBlock(512, 512, batch_norm=True, activation='leaky_relu', dropout=0.5)
-        self.down7 = ConvBlock(512, 512, batch_norm=True, activation='leaky_relu', dropout=0.5)
-        self.bottleneck = ConvBlock(512, 512, batch_norm=False, activation='relu')
-        
-        # Upsampling
-        self.up1 = DeconvBlock(512, 512, dropout=True)
-        self.up2 = DeconvBlock(1024, 512, dropout=True)
-        self.up3 = DeconvBlock(1024, 512, dropout=True)
-        self.up4 = DeconvBlock(1024, 512)
-        self.up5 = DeconvBlock(1024, 256)
-        self.up6 = DeconvBlock(512, 128)
-        self.up7 = DeconvBlock(256, 64)
-        
-        # Output
+        self.down1 = UNetDownPDT2(input_channels, 64, normalize=False)
+        self.down2 = UNetDownPDT2(64, 128)
+        self.down3 = UNetDownPDT2(128, 256)
+        self.down4 = UNetDownPDT2(256, 512, dropout=0.5)
+        self.down5 = UNetDownPDT2(512, 512, dropout=0.5)
+        self.down6 = UNetDownPDT2(512, 512, dropout=0.5)
+        self.down7 = UNetDownPDT2(512, 512, dropout=0.5)
+        self.bottleneck = UNetDownPDT2(512, 512, normalize=False)
+        self.up1 = UNetUpPDT2(512, 512, dropout=0.5)
+        self.up2 = UNetUpPDT2(1024, 512, dropout=0.5)
+        self.up3 = UNetUpPDT2(1024, 512, dropout=0.5)
+        self.up4 = UNetUpPDT2(1024, 512, dropout=0.5)
+        self.up5 = UNetUpPDT2(1024, 256)
+        self.up6 = UNetUpPDT2(512, 128)
+        self.up7 = UNetUpPDT2(256, 64)
         self.final_up = nn.Sequential(
             nn.ConvTranspose2d(128, output_channels, 4, 2, 1),
             nn.Tanh()
         )
 
     def forward(self, x):
-        # Encoder
-        d1 = self.down1(x)
-        d2 = self.down2(d1)
-        d3 = self.down3(d2)
-        d4 = self.down4(d3)
-        d5 = self.down5(d4)
-        d6 = self.down6(d5)
-        d7 = self.down7(d6)
-        bn = self.bottleneck(d7)
-        
-        # Decoder with skip connections
-        u1 = self.up1(bn)
-        u2 = self.up2(torch.cat([u1, d7], 1))
-        u3 = self.up3(torch.cat([u2, d6], 1))
-        u4 = self.up4(torch.cat([u3, d5], 1))
-        u5 = self.up5(torch.cat([u4, d4], 1))
-        u6 = self.up6(torch.cat([u5, d3], 1))
-        u7 = self.up7(torch.cat([u6, d2], 1))
-        
-        return self.final_up(torch.cat([u7, d1], 1))
+        d1 = self.down1(x);  d2 = self.down2(d1)
+        d3 = self.down3(d2); d4 = self.down4(d3)
+        d5 = self.down5(d4); d6 = self.down6(d5)
+        d7 = self.down7(d6); bn = self.bottleneck(d7)
+        u1 = self.up1(bn, d7);   u2 = self.up2(u1, d6)
+        u3 = self.up3(u2, d5);   u4 = self.up4(u3, d4)
+        u5 = self.up5(u4, d3);   u6 = self.up6(u5, d2)
+        u7 = self.up7(u6, d1)
+        return self.final_up(u7)
 
-# ==============================================
-# Model Loading and Initialization
-# ==============================================
+# ─── Model Loading ────────────────────────────────────────────────────────────
 def load_generator(path, model_class, strict=False):
-    """Load generator model from checkpoint"""
     try:
         ckpt = torch.load(path, map_location='cpu')
-        
-        # Handle different checkpoint formats
-        if isinstance(ckpt, dict):
-            if 'generator_state_dict' in ckpt:
-                state = ckpt['generator_state_dict']
-            elif 'state_dict' in ckpt:
-                state = ckpt['state_dict']
-            else:
-                state = ckpt
+        if isinstance(ckpt, dict) and 'generator_state_dict' in ckpt:
+            state = ckpt['generator_state_dict']
+        elif isinstance(ckpt, dict) and 'state_dict' in ckpt:
+            state = ckpt['state_dict']
+        elif isinstance(ckpt, dict):
+            state = ckpt
         else:
             raise TypeError(f"Loaded object is not a dictionary: {type(ckpt)}")
-            
     except Exception as e:
         raise RuntimeError(f"Error loading state dict from {path}: {e}")
 
-    # Initialize model
     model = model_class(input_channels=1, output_channels=1)
     
     try:
@@ -294,28 +263,14 @@ def load_generator(path, model_class, strict=False):
     model.eval()
     return model
 
-# Initialize all models
-MODELS = {}
+# Instantiate all models
+MODELS = {
+    't1_to_t2': load_generator(PATH_T1T2, GeneratorT1T2, strict=True),
+    't2_to_t1': load_generator(PATH_T2T1, GeneratorT2T1, strict=True),
+    'pd_to_t2': load_generator(PATH_PD2T2, GeneratorPDT2, strict=True)
+}
 
-try:
-    MODELS['t1_to_t2'] = load_generator(MODEL_PATHS['t1_to_t2'], T1ToT2Generator, strict=True)
-except Exception as e:
-    print("Skipping t1_to_t2:", e)
-
-try:
-    MODELS['t2_to_t1'] = load_generator(MODEL_PATHS['t2_to_t1'], T2ToT1Generator, strict=True)
-except Exception as e:
-    print("Skipping t2_to_t1:", e)
-
-try:
-    MODELS['pd_to_t2'] = load_generator(MODEL_PATHS['pd_to_t2'], PDToT2Generator, strict=True)
-except Exception as e:
-    print("Skipping pd_to_t2:", e)
-
-
-# ==============================================
-# Image Processing
-# ==============================================
+# ─── Transforms ───────────────────────────────────────────────────────────────
 preprocess = transforms.Compose([
     transforms.Resize((256, 256), interpolation=Image.BICUBIC),
     transforms.ToTensor(),
@@ -327,11 +282,8 @@ postprocess = transforms.Compose([
     transforms.ToPILImage()
 ])
 
-# ==============================================
-# Additional Model (Checkpoint Matching)
-# ==============================================
+# ─── Segmentation Model ──────────────────────────────────────────────────────
 class UNet2DGeneratorCheckpointMatch(nn.Module):
-    """Alternative U-Net architecture for checkpoint compatibility"""
     def __init__(self, in_channels=3, out_channels=2):
         super().__init__()
         
