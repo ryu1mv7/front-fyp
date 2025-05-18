@@ -246,6 +246,9 @@ class SegmentImageView(APIView):
             if 'generator' in state:
                 print("Using nested state['generator']")
                 state = state['generator']
+            elif 'state_dict' in state:
+                print("Using state['state_dict']")
+                state = state['state_dict']
             else:
                 print("Using flat state_dict")
 
