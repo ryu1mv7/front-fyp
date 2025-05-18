@@ -318,14 +318,38 @@ const MedicalImageConverter = () => {
         results.push(data.result);
         allMetrics.push(data.metrics);
 
+        // Inject mid-slice preview if provided (for NIfTI)
+        if (data.preview) {
+          setPreviewUrls(prev => {
+            const newPreviews = [...prev];
+            newPreviews.push(data.preview);
+            return newPreviews;
+          });
+// store preview in the correct index
+        } else {
+          const reader = new FileReader();
+          const base64 = await new Promise(resolve => {
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          });
+          setPreviewUrls(prev => {
+            const newPreviews = [...prev];
+            newPreviews.push(base64);
+            return newPreviews;
+          });
+        }
+
         if (data.sliceUrls?.length) {
           lastSlices = data.sliceUrls;
         }
       }
 
       setOutputImages(results);
-      
+
+      setPreviewUrls(previewUrls);
+
       const fullUrls = lastSlices.map(url => `http://localhost:5000${url}`);
+      
       setVolumeSlices(fullUrls);
 
 
@@ -507,6 +531,7 @@ const MedicalImageConverter = () => {
         {/* Conversion Panel */}
         {activeTab === 'conversion' && (
           <>
+            <h2 className="text-xl font-bold text-white mb-4">Modality Conversion (e.g., T1, PD & T2)</h2>
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-2">Conversion Type</label>
@@ -584,6 +609,12 @@ const MedicalImageConverter = () => {
                       alt="Input" 
                       className="max-w-full max-h-full object-contain" 
                     />
+                  ) : outputImages[currentImageIndex] ? (
+                    <img 
+                      src={outputImages[currentImageIndex]} 
+                      alt="Input (from output fallback)" 
+                      className="max-w-full max-h-full object-contain opacity-70" 
+                    />
                   ) : (
                     <div className="text-center p-4">
                       <Upload size={32} className="mx-auto mb-2 text-gray-500" />
@@ -659,7 +690,12 @@ const MedicalImageConverter = () => {
         {/* Segmentation Panel (BraTS Only) */}
         {activeTab === 'segmentation' && (
           <div className="w-full max-w-4xl bg-gray-800 rounded-lg p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-white mb-4">BraTS Tumor Segmentation</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Tumor & Lesion Segmentation (Multi-Modal MRI)
+            </h2>
+            <p className="text-sm text-gray-400 mb-4">
+              This feature detects and highlights potential brain tumors or lesion regions based on AI-driven segmentation across multiple MRI inputs (T1n, T1ce, T2).
+            </p>
             <Segmentation />
           </div>
         )}
@@ -667,8 +703,12 @@ const MedicalImageConverter = () => {
         {/* Overlay Panel (IXI Tissue Segmentation) */}
         {activeTab === 'overlay' && (
           <div className="w-full max-w-6xl bg-gray-800 rounded-lg p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-white mb-4">Tissue Overlay (IXI Dataset)</h2>
-            <p className="text-sm text-gray-400 mb-4">Visualizes CSF, gray matter, white matter, and background on mid-slice of T1 MRI.</p>
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Brain Tissue Segmentation (CSF / GM / WM)
+            </h2>
+            <p className="text-sm text-gray-400 mb-4">
+              Visualizes cerebrospinal fluid (CSF), gray matter (GM), white matter (WM), and other structures from a mid-slice of a T1-weighted MRI scan.
+            </p>
             <IXISegmentation />
           </div>
         )}

@@ -118,6 +118,12 @@ class ConvertImageView(APIView):
                     return Image.open(file).convert('L')
 
             img, slice_urls = load_input_image(img_f, image_format)
+            
+            # Add mid-slice preview image
+            preview_buf = io.BytesIO()
+            img.save(preview_buf, format='JPEG')
+            mid_slice_preview_b64 = base64.b64encode(preview_buf.getvalue()).decode()
+
             tensor_input = preprocess(img).unsqueeze(0)
 
             with torch.no_grad():
@@ -134,7 +140,7 @@ class ConvertImageView(APIView):
             pil_out = postprocess(out_clamped)
 
             img_f.seek(0)
-            
+
             ref_img, _ = load_input_image(img_f, image_format)
             ref_img = ref_img.resize(pil_out.size)
 
@@ -162,7 +168,8 @@ class ConvertImageView(APIView):
                     'lpips': lpips_val,
                     'histogram': hist.tolist()
                 },
-                'sliceUrls': slice_urls if image_format == 'nii' else []  # only if .nii
+                'sliceUrls': slice_urls if image_format == 'nii' else [],
+                'preview': f'data:image/jpeg;base64,{mid_slice_preview_b64}'  # <-- ADD THIS
             })
         
         except Exception as e:
