@@ -120,7 +120,9 @@ class ConvertImageView(APIView):
                             print(f"Warning: Could not delete temporary file {path}: {e}")
 
                 else:
-                    return Image.open(file).convert('L'), []
+                    image = Image.open(file).convert('L')
+                    image = image.resize((256, 256), resample=Image.BICUBIC)
+                    return image, []
 
             img, slice_urls = load_input_image(img_f, image_format)
             
