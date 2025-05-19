@@ -459,48 +459,51 @@ const MedicalImageConverter = () => {
                 className="flex items-center space-x-2 focus:outline-none"
                 onClick={() => setShowDropdown(!showDropdown)}
               >
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-300 flex items-center justify-center text-blue-600 dark:text-blue-800">
                   <User size={18} />
                 </div>
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                   {truncateText(currentUser?.email.split('@')[0], 8)}
                 </span>
               </button>
               
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-sm font-medium">
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-100 dark:border-gray-700">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-100">
                       {truncateText(currentUser?.email, 20)}
                     </p>
                   </div>
                   <button 
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                     onClick={() => navigate('/history')}
                   >
-                    <History size={16} className="mr-3 text-gray-500" />
+                    <History size={16} className="mr-3 text-gray-500 dark:text-gray-300" />
                     {truncateText('History', 10)}
                   </button>
+
                   <button 
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                     onClick={() => navigate('/bookmark')}
                   >
-                    <Bookmark size={16} className="mr-3 text-gray-500" />
+                    <Bookmark size={16} className="mr-3 text-gray-500 dark:text-gray-300" />
                     {truncateText('Bookmarks', 10)}
                   </button>
+
                   <button 
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                     onClick={() => navigate('/settings')}
                   >
-                    <Settings size={16} className="mr-3 text-gray-500" />
+                    <Settings size={16} className="mr-3 text-gray-500 dark:text-gray-300" />
                     {truncateText('Settings', 10)}
                   </button>
-                  <div className="border-t border-gray-100">
+
+                  <div className="border-t border-gray-100 dark:border-gray-700">
                     <button 
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-700"
                       onClick={handleLogout}
                     >
-                      <LogOut size={16} className="mr-3" />
+                      <LogOut size={16} className="mr-3 text-red-500" />
                       {truncateText('Sign out', 10)}
                     </button>
                   </div>
