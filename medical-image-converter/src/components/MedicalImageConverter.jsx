@@ -524,32 +524,35 @@ const MedicalImageConverter = () => {
                 onClick={() => setActiveTab('conversion')}
                 className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
                   activeTab === 'conversion'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'
                 }`}
               >
                 Image Conversion
               </button>
+
               <button
                 onClick={() => setActiveTab('segmentation')}
                 className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
                   activeTab === 'segmentation'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'
                 }`}
               >
                 Tumor Segmentation
               </button>
+
               <button
                 onClick={() => setActiveTab('overlay')}
                 className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
                   activeTab === 'overlay'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'
                 }`}
               >
                 Tissue Overlay
               </button>
+
             </nav>
           </div>
 
@@ -790,77 +793,29 @@ const MedicalImageConverter = () => {
           {/* Info Tabs */}
           <div className="border-t border-gray-200">
             <div className="flex overflow-x-auto">
-              <button
-                onClick={() => setInfoTab('metrics')}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
-                  infoTab === 'metrics'
-                    ? 'text-blue-600 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Quality Metrics
-              </button>
-              <button
-                onClick={() => setInfoTab('performance')}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
-                  infoTab === 'performance'
-                    ? 'text-blue-600 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Performance
-              </button>
-              <button
-                onClick={() => setInfoTab('architecture')}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
-                  infoTab === 'architecture'
-                    ? 'text-blue-600 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Architecture
-              </button>
-              <button
-                onClick={() => setInfoTab('histogram')}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
-                  infoTab === 'histogram'
-                    ? 'text-blue-600 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Intensity Analysis
-              </button>
-              <button
-                onClick={() => setInfoTab('slices')}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
-                  infoTab === 'slices'
-                    ? 'text-blue-600 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Slice Viewer
-              </button>
-              <button
-                onClick={() => setInfoTab('details')}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
-                  infoTab === 'details'
-                    ? 'text-blue-600 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Details
-              </button>
-              <button
-                onClick={() => setInfoTab('settings')}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
-                  infoTab === 'settings'
-                    ? 'text-blue-600 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Settings
-              </button>
+              {[
+                { key: 'metrics', label: 'Quality Metrics' },
+                { key: 'performance', label: 'Performance' },
+                { key: 'architecture', label: 'Architecture' },
+                { key: 'histogram', label: 'Intensity Analysis' },
+                { key: 'slices', label: 'Slice Viewer' },
+                { key: 'details', label: 'Details' },
+                { key: 'settings', label: 'Settings' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setInfoTab(key)}
+                  className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors duration-150 ${
+                    infoTab === key
+                      ? 'text-blue-600 border-b-2 border-blue-500 dark:text-blue-400 dark:border-blue-400'
+                      : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+
 
             <div className="p-6">
               {infoTab === 'metrics' && (
