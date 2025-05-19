@@ -910,13 +910,13 @@ const MedicalImageConverter = () => {
 
               {infoTab === 'performance' && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-800">Model Benchmarking</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Model Benchmarking</h3>
                   <img 
                     src="/assets/Model_Comparison_Chart.png"
                     alt="Model Comparison"
-                    className="w-full rounded-lg border border-gray-200"
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-600"
                   />
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
                     Comparative chart showcasing SSIM and PSNR scores for evaluated models. Multi-Input U-Net delivers superior perceptual and structural fidelity, outperforming GAN variants in stability and precision across test datasets.
                   </p>
                 </div>
@@ -925,25 +925,25 @@ const MedicalImageConverter = () => {
               {infoTab === 'architecture' && (
                 <div className="space-y-8">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Model Architecture</h3>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Model Architecture</h3>
                     <img 
                       src="/assets/Model_Architecture_Diagram.png"
                       alt="U-Net Architecture"
-                      className="w-full rounded-lg border border-gray-200"
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600"
                     />
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
                       The multi-input U-Net receives three MRI modalities (T1n, T1ce, T2w) and jointly predicts T2-FLAIR and segmentation output, enforcing modality alignment and multi-scale attention across encoder-decoder stages.
                     </p>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Workflow Pipeline</h3>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Workflow Pipeline</h3>
                     <img 
                       src="/assets/Workflow_Diagram.png"
                       alt="Workflow Diagram"
-                      className="w-full rounded-lg border border-gray-200"
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600"
                     />
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
                       Step-by-step pipeline: input loading → preprocessing → model inference → output decoding → overlay rendering. Integrated into our full-stack system with Gradio, Torch, and NIfTI visualization support.
                     </p>
                   </div>
