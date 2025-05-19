@@ -33,3 +33,4 @@ medical-image-converter/.DS_Store
 
 # Models downloaded from Hugging Face
 core/backend/models/
+venv/
