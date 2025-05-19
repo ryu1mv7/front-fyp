@@ -681,7 +681,7 @@ const MedicalImageConverter = () => {
                   </div>
 
                   {/* Image Navigation */}
-                  {inputImages.length > 0 && (
+                  {/* {inputImages.length > 0 && (
                     <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
                       <button
                         className="p-2 rounded-md bg-white border border-gray-300 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -708,10 +708,10 @@ const MedicalImageConverter = () => {
                         <ChevronRight size={20} />
                       </button>
                     </div>
-                  )}
+                  )} */}
 
                   {/* Volume Viewer */}
-                  {volumeSlices.length > 0 && (
+                  {/* {volumeSlices.length > 0 && (
                     <div className="mt-6 rounded-lg border border-gray-200 overflow-hidden">
                       <div className="bg-gray-50 p-3 border-b border-gray-200">
                         <h3 className="text-sm font-medium text-gray-700">3D Volume Viewer</h3>
@@ -720,7 +720,7 @@ const MedicalImageConverter = () => {
                         <VolumeViewer slices={volumeSlices} />
                       </div>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </>
             )}
@@ -793,6 +793,16 @@ const MedicalImageConverter = () => {
                 }`}
               >
                 Intensity Analysis
+              </button>
+              <button
+                onClick={() => setInfoTab('slices')}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
+                  infoTab === 'slices'
+                    ? 'text-blue-600 border-b-2 border-blue-500'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Slice Viewer
               </button>
               <button
                 onClick={() => setInfoTab('details')}
@@ -955,7 +965,68 @@ const MedicalImageConverter = () => {
                   </div>
                 </div>
               )}
-                      
+
+              {infoTab === 'slices' && volumeSlices.length > 0 && (
+                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">3D Volume Slice Viewer</h3>
+                  
+                  <VolumeViewer slices={volumeSlices} />
+
+                  {inputImages.length > 1 && (
+                    <>
+                      <hr className="my-6 border-t border-gray-300" />
+                      <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <button
+                          className="p-2 rounded-md bg-white border border-gray-300 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={handlePrevImage}
+                          disabled={currentImageIndex === 0}
+                        >
+                          <ChevronLeft size={20} />
+                        </button>
+
+                        <div className="text-center">
+                          <p className="text-sm text-gray-700">
+                            Image {currentImageIndex + 1} of {inputImages.length}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate max-w-xs">
+                            {inputImages[currentImageIndex]?.name}
+                          </p>
+                        </div>
+
+                        <button
+                          className="p-2 rounded-md bg-white border border-gray-300 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={handleNextImage}
+                          disabled={currentImageIndex === inputImages.length - 1}
+                        >
+                          <ChevronRight size={20} />
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Optional: keyboard left/right navigation */}
+                  <script dangerouslySetInnerHTML={{
+                    __html: `
+                      document.onkeydown = function(e) {
+                        if (document.activeElement.tagName.toLowerCase() === 'input') return;
+                        if (e.key === 'ArrowLeft') {
+                          document.getElementById('nav-left')?.click();
+                        } else if (e.key === 'ArrowRight') {
+                          document.getElementById('nav-right')?.click();
+                        }
+                      }
+                    `
+                  }} />
+                </div>
+              )}
+
+
+            {infoTab === 'slices' && volumeSlices.length === 0 && (
+              <div className="text-center text-gray-500 py-12">
+                <p>No volume data available. Convert a NIfTI image to see the slices.</p>
+              </div>
+            )}
+    
             {infoTab === 'details' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
