@@ -81,7 +81,7 @@ const IXISegmentation = () => {
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden max-w-6xl mx-auto">
       {/* Header */}
-      <div className="bg-indigo-600 px-6 py-4">
+      <div className="bg-blue-600 px-6 py-4">
         <h2 className="text-xl font-semibold text-white">Brain Tissue Segmentation</h2>
         <p className="text-indigo-100 text-sm mt-1">
           T1-weighted MRI analysis for CSF, GM, and WM visualization
@@ -117,10 +117,10 @@ const IXISegmentation = () => {
 
         {/* Action Button */}
         <div className="flex justify-center mb-8">
-          <button
+        <button
             className={`px-6 py-3 rounded-md shadow-sm text-white font-medium flex items-center ${
-              isLoading ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+              isLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
             onClick={handleSubmit}
             disabled={!inputFile || isLoading}
           >

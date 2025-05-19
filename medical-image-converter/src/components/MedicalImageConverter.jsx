@@ -482,13 +482,13 @@ const MedicalImageConverter = () => {
                     {truncateText('History', 10)}
                   </button>
 
-                  <button 
+                  {/* <button 
                     className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                     onClick={() => navigate('/bookmark')}
                   >
                     <Bookmark size={16} className="mr-3 text-gray-500 dark:text-gray-300" />
                     {truncateText('Bookmarks', 10)}
-                  </button>
+                  </button> */}
 
                   <button 
                     className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -646,7 +646,7 @@ const MedicalImageConverter = () => {
                 )}
 
                 {/* Image Preview Area */}
-                <div className="space-y-6">
+                <div className="space-y-6 mb-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Input Image */}
                     <div className="rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
@@ -720,34 +720,34 @@ const MedicalImageConverter = () => {
                   </div>
 
                   {/* Image Navigation */}
-                  {/* {inputImages.length > 0 && (
-                    <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  {inputImages.length > 0 && (
+                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                       <button
-                        className="p-2 rounded-md bg-white border border-gray-300 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-2 rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={handlePrevImage}
                         disabled={currentImageIndex === 0}
                       >
-                        <ChevronLeft size={20} />
+                        <ChevronLeft size={20} className="text-gray-700 dark:text-gray-200" />
                       </button>
                       
                       <div className="text-center">
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-gray-700 dark:text-gray-200">
                           Image {currentImageIndex + 1} of {inputImages.length}
                         </p>
-                        <p className="text-xs text-gray-500 truncate max-w-xs">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">
                           {inputImages[currentImageIndex]?.name}
                         </p>
                       </div>
 
                       <button
-                        className="p-2 rounded-md bg-white border border-gray-300 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-2 rounded-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={handleNextImage}
                         disabled={currentImageIndex === inputImages.length - 1}
                       >
-                        <ChevronRight size={20} />
+                        <ChevronRight size={20} className="text-gray-700 dark:text-gray-200" />
                       </button>
                     </div>
-                  )} */}
+                  )}
 
                   {/* Volume Viewer */}
                   {/* {volumeSlices.length > 0 && (
@@ -766,11 +766,11 @@ const MedicalImageConverter = () => {
 
         {/* Segmentation Panel (BraTS Only) */}
         {activeTab === 'segmentation' && (
-          <div className="w-full max-w-4xl bg-gray-800 rounded-lg p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-white mb-4">
+          <div className="w-full bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
               Tumor & Lesion Segmentation (Multi-Modal MRI)
             </h2>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               This feature detects and highlights potential brain tumors or lesion regions based on AI-driven segmentation across multiple MRI inputs (T1n, T1ce, T2).
             </p>
             <Segmentation />
@@ -779,11 +779,11 @@ const MedicalImageConverter = () => {
 
         {/* Overlay Panel (IXI Tissue Segmentation) */}
         {activeTab === 'overlay' && (
-          <div className="w-full max-w-6xl bg-gray-800 rounded-lg p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-white mb-4">
+          <div className="w-full bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
               Brain Tissue Segmentation (CSF / GM / WM)
             </h2>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Visualizes cerebrospinal fluid (CSF), gray matter (GM), white matter (WM), and other structures from a mid-slice of a T1-weighted MRI scan.
             </p>
             <IXISegmentation />
@@ -795,12 +795,11 @@ const MedicalImageConverter = () => {
             <div className="flex overflow-x-auto">
               {[
                 { key: 'metrics', label: 'Quality Metrics' },
-                { key: 'performance', label: 'Performance' },
-                { key: 'architecture', label: 'Architecture' },
                 { key: 'histogram', label: 'Intensity Analysis' },
                 { key: 'slices', label: 'Slice Viewer' },
-                { key: 'details', label: 'Details' },
-                { key: 'settings', label: 'Settings' },
+                // { key: 'performance', label: 'Performance' },
+                // { key: 'architecture', label: 'Architecture' },
+                // { key: 'details', label: 'Details' },
               ].map(({ key, label }) => (
                 <button
                   key={key}
@@ -866,7 +865,7 @@ const MedicalImageConverter = () => {
                 </div>
               )}
 
-              {infoTab === 'performance' && (
+              {/* {infoTab === 'performance' && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Model Benchmarking</h3>
                   <img 
@@ -878,9 +877,9 @@ const MedicalImageConverter = () => {
                     Comparative chart showcasing SSIM and PSNR scores for evaluated models. Multi-Input U-Net delivers superior perceptual and structural fidelity, outperforming GAN variants in stability and precision across test datasets.
                   </p>
                 </div>
-              )}
+              )} */}
 
-              {infoTab === 'architecture' && (
+              {/* {infoTab === 'architecture' && (
                 <div className="space-y-8">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Model Architecture</h3>
@@ -906,7 +905,7 @@ const MedicalImageConverter = () => {
                     </p>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {infoTab === 'histogram' && (
                 <div className="space-y-6">
@@ -926,8 +925,8 @@ const MedicalImageConverter = () => {
                     </label>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Generated Output</h4>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Generated Output</h4>
                       {outputImages[currentImageIndex] ? (
                         <PixelHistogram 
                           imageUrl={outputImages[currentImageIndex]}
@@ -935,14 +934,14 @@ const MedicalImageConverter = () => {
                           color="#3B82F6"
                         />
                       ) : (
-                        <div className="h-64 flex items-center justify-center text-gray-400">
+                        <div className="h-64 flex items-center justify-center text-gray-400 dark:text-gray-500">
                           <p>Convert an image to see distribution</p>
                         </div>
                       )}
                     </div>
 
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Reference Image</h4>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Reference Image</h4>
                       {targetImageUrl ? (
                         <PixelHistogram 
                           imageUrl={targetImageUrl}
@@ -950,7 +949,7 @@ const MedicalImageConverter = () => {
                           color="#10B981"
                         />
                       ) : (
-                        <div className="h-64 flex items-center justify-center text-gray-400">
+                        <div className="h-64 flex items-center justify-center text-gray-400 dark:text-gray-500">
                           <p>Upload a reference image</p>
                         </div>
                       )}
@@ -1020,7 +1019,7 @@ const MedicalImageConverter = () => {
               </div>
             )}
     
-            {infoTab === 'details' && (
+            {/* {infoTab === 'details' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <p className="text-sm text-gray-700 mb-1 font-medium">Input Format</p>
@@ -1046,47 +1045,9 @@ const MedicalImageConverter = () => {
                   </p>
                 </div>
               </div>
-            )}
+            )} */}
             
-            {infoTab === 'settings' && (
-              <div className="space-y-6">
-                <div className="bg-white p-4 rounded-lg border border-gray-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Quality Level
-                  </label>
-                  <input 
-                    type="range" 
-                    min="1" 
-                    max="100" 
-                    defaultValue="90" 
-                    className="w-full accent-blue-500"
-                  />
-                </div>
-
-                <div className="bg-white p-4 rounded-lg border border-gray-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Inference Parameters
-                  </label>
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <label className="flex items-center text-sm text-gray-700">
-                      <input 
-                        type="checkbox" 
-                        className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                        defaultChecked 
-                      />
-                      Higher Accuracy
-                    </label>
-                    <label className="flex items-center text-sm text-gray-700">
-                      <input 
-                        type="checkbox" 
-                        className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      Post-processing
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
+            
 
           </div>
         </div>

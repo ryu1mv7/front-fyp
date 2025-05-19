@@ -68,17 +68,17 @@ const History = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm">
+      <div className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">History</h1>
-            <p className="text-sm text-gray-500">View and manage your past conversions and segmentations</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">History</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-300">View and manage your past conversions and segmentations</p>
           </div>
           <button
             onClick={() => navigate('/converter')}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <ArrowLeft size={16} className="mr-2" />
             Back to Converter
@@ -106,19 +106,19 @@ const History = () => {
               Clear History
             </button>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-300">
             Showing {historyData.length} {historyData.length === 1 ? 'entry' : 'entries'}
           </p>
         </div>
 
         {/* No Data */}
         {historyData.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="mx-auto h-24 w-24 text-gray-400">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 text-center">
+            <div className="mx-auto h-24 w-24 text-gray-400 dark:text-gray-500">
               <Clock size={24} className="mx-auto" />
             </div>
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No history found</h3>
-            <p className="mt-1 text-sm text-gray-500">Perform a conversion or segmentation to see results here.</p>
+            <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-gray-100">No history found</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Perform a conversion or segmentation to see results here.</p>
             <div className="mt-6">
               <button
                 onClick={() => navigate('/converter')}
@@ -133,14 +133,14 @@ const History = () => {
             {historyData.map((entry, idx) => (
               <div
                 key={idx}
-                className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 hover:shadow-md transition-shadow duration-200"
+                className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200"
               >
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getModeColor(entry.mode)}`}>
                     {getModeLabel(entry.mode)}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     {formatDate(entry.timestamp)}
                   </span>
                 </div>
@@ -149,30 +149,30 @@ const History = () => {
                 <div className="p-4">
                   {entry.mode === 'overlay' ? (
                     entry.hardOverlay && (
-                      <div className="mb-4 rounded-md overflow-hidden border border-gray-200">
+                      <div className="mb-4 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
                         <img
                           src={entry.hardOverlay}
                           alt="Overlay result"
-                          className="w-full h-48 object-contain"
+                          className="w-full h-48 object-contain bg-gray-50 dark:bg-gray-900"
                         />
                       </div>
                     )
                   ) : (
-                    <div className="mb-4 rounded-md overflow-hidden border border-gray-200">
+                    <div className="mb-4 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
                       <img
                         src={entry.outputImage}
                         alt="Output result"
-                        className="w-full h-48 object-contain"
+                        className="w-full h-48 object-contain bg-gray-50 dark:bg-gray-900"
                       />
                     </div>
                   )}
 
                   {entry.extraImage && (
-                    <div className="mb-4 rounded-md overflow-hidden border border-gray-200">
+                    <div className="mb-4 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
                       <img
                         src={entry.extraImage}
                         alt="Additional result"
-                        className="w-full h-48 object-contain"
+                        className="w-full h-48 object-contain bg-gray-50 dark:bg-gray-900"
                       />
                     </div>
                   )}
@@ -181,38 +181,38 @@ const History = () => {
                   <div className="space-y-2">
                     {entry.conversionType && (
                       <p className="text-sm">
-                        <span className="font-medium text-gray-700">Conversion:</span>{' '}
-                        <span className="text-gray-600">
+                        <span className="font-medium text-gray-700 dark:text-gray-200">Conversion:</span>{' '}
+                        <span className="text-gray-600 dark:text-gray-400">
                           {entry.conversionType.replace(/-/g, ' ').toUpperCase()}
                         </span>
                       </p>
                     )}
                     <p className="text-sm">
-                      <span className="font-medium text-gray-700">Model:</span>{' '}
-                      <span className="text-gray-600">{entry.modelName || 'U-Net'}</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-200">Model:</span>{' '}
+                      <span className="text-gray-600 dark:text-gray-400">{entry.modelName || 'U-Net'}</span>
                     </p>
                   </div>
 
                   {/* Metrics */}
                   <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-gray-50 p-2 rounded">
+                    <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded">
                       <Zap size={16} className="mx-auto text-blue-500" />
-                      <p className="text-xs text-gray-500 mt-1">SSIM</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">SSIM</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {entry.metrics?.ssim?.toFixed(4) || '–'}
                       </p>
                     </div>
-                    <div className="bg-gray-50 p-2 rounded">
+                    <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded">
                       <ImageIcon size={16} className="mx-auto text-blue-500" />
-                      <p className="text-xs text-gray-500 mt-1">PSNR</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">PSNR</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {entry.metrics?.psnr?.toFixed(2) || '–'} dB
                       </p>
                     </div>
-                    <div className="bg-gray-50 p-2 rounded">
+                    <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded">
                       <Clock size={16} className="mx-auto text-blue-500" />
-                      <p className="text-xs text-gray-500 mt-1">LPIPS</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">LPIPS</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {entry.metrics?.lpips?.toFixed(4) || '–'}
                       </p>
                     </div>
@@ -220,10 +220,10 @@ const History = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-between space-x-3">
+                <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-between space-x-3">
                   <button
                     onClick={() => handleDownload(entry)}
-                    className="flex-1 inline-flex justify-center items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="flex-1 inline-flex justify-center items-center px-3 py-2 border border-gray-300 dark:border-gray-700 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     <Download size={16} className="mr-2" />
                     Download
