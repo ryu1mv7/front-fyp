@@ -953,9 +953,11 @@ const MedicalImageConverter = () => {
               {infoTab === 'histogram' && (
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold text-gray-800">Intensity Distribution Comparison</h3>
-                    <label className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
-                      <Upload size={14} className="mr-1.5" />
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                      Intensity Distribution Comparison
+                    </h3>
+                    <label className="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
+                      <Upload size={14} className="mr-1.5 text-gray-600 dark:text-gray-300" />
                       Upload Reference
                       <input 
                         type="file" 
