@@ -82,15 +82,15 @@ class ConvertImageView(APIView):
 
             def load_input_image(file, fmt):
                 if fmt == 'nii':
-                    tf = tempfile.NamedTemporaryFile(suffix='.nii', delete=False)
-                    for chunk in file.chunks():
-                        tf.write(chunk)
-                    tf.close()
-                    path = tf.name
+                    with tempfile.NamedTemporaryFile(suffix='.nii', delete=False) as tf:
+                        for chunk in file.chunks():
+                            tf.write(chunk)
+                        path = tf.name
 
                     try:
                         nii = nib.load(path)
                         data = nii.get_fdata()
+                        nii = None  # Explicitly release the NIfTI object
 
                         # === NEW: Save axial slices for 3D viewer ===
                         from datetime import datetime
@@ -112,10 +112,15 @@ class ConvertImageView(APIView):
                         pil_img = Image.fromarray((norm * 255).astype(np.uint8)).convert('L')
                         return pil_img, slice_urls
                     finally:
-                        os.remove(path)
+                        try:
+                            import time
+                            time.sleep(0.1)  # Small delay to ensure file is released
+                            os.remove(path)
+                        except Exception as e:
+                            print(f"Warning: Could not delete temporary file {path}: {e}")
 
                 else:
-                    return Image.open(file).convert('L')
+                    return Image.open(file).convert('L'), []
 
             img, slice_urls = load_input_image(img_f, image_format)
             
@@ -181,17 +186,25 @@ class SegmentImageView(APIView):
     def post(self, request):
         def get_slice(file):
             suffix = '.nii.gz' if file.name.endswith('.nii.gz') else '.nii'
-            tf = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
-            for chunk in file.chunks():
-                tf.write(chunk)
-            tf.close()
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tf:
+                for chunk in file.chunks():
+                    tf.write(chunk)
+                path = tf.name
+
             try:
-                data = nib.load(tf.name).get_fdata()
+                nii = nib.load(path)
+                data = nii.get_fdata()
+                nii = None  # Explicitly release the NIfTI object
                 slice_ = data[:, :, data.shape[2] // 2]
                 norm = (slice_ - np.min(slice_)) / (np.ptp(slice_) + 1e-6)
                 return norm
             finally:
-                os.remove(tf.name)
+                try:
+                    import time
+                    time.sleep(0.1)  # Small delay to ensure file is released
+                    os.remove(path)
+                except Exception as e:
+                    print(f"Warning: Could not delete temporary file {path}: {e}")
 
         try:
             t1n  = get_slice(request.FILES['t1n'])
@@ -263,18 +276,25 @@ class IXISegmentView(APIView):
 
         def load_slice(file):
             suffix = '.nii.gz' if file.name.endswith('.nii.gz') else '.nii'
-            tf = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
-            for chunk in file.chunks():
-                tf.write(chunk)
-            tf.close()
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tf:
+                for chunk in file.chunks():
+                    tf.write(chunk)
+                path = tf.name
 
             try:
-                volume = nib.load(tf.name).get_fdata()
+                nii = nib.load(path)
+                volume = nii.get_fdata()
+                nii = None  # Explicitly release the NIfTI object
                 mid_slice = volume[:, :, volume.shape[2] // 2]
                 norm = (mid_slice - np.min(mid_slice)) / (np.ptp(mid_slice) + 1e-6)
                 return norm
             finally:
-                os.remove(tf.name)
+                try:
+                    import time
+                    time.sleep(0.1)  # Small delay to ensure file is released
+                    os.remove(path)
+                except Exception as e:
+                    print(f"Warning: Could not delete temporary file {path}: {e}")
 
         try:
             print("=== POST /api/ixi-segment/ has been triggered ===")
