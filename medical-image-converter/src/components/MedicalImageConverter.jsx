@@ -210,8 +210,19 @@ const MedicalImageConverter = () => {
   const toggleTheme = () => {
     const newTheme = isDarkMode ? 'light' : 'dark';
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    document.body.classList.toggle('bg-gray-50', newTheme === 'light');
+    document.body.classList.toggle('bg-gray-900', newTheme === 'dark');
+    document.body.classList.toggle('text-gray-800', newTheme === 'light');
+    document.body.classList.toggle('text-gray-100', newTheme === 'dark');
     localStorage.setItem('theme', newTheme);
     setIsDarkMode(!isDarkMode);
+  };
+
+  const truncateText = (text, maxLength) => {
+    if (isDarkMode && text.length > maxLength) {
+      return text.substring(0, maxLength) + '...';
+    }
+    return text;
   };
 
   const formatOptions = [
@@ -424,7 +435,7 @@ const MedicalImageConverter = () => {
       <header className="bg-white shadow-sm py-4 px-6 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-xl font-semibold text-blue-600 dark:text-blue-400">
-            Mirage. Your Multi-Modality Translation & Synthesis Platform.
+            {truncateText('Mirage. Your Multi-Modality Translation & Synthesis Platform.', 30)}
           </h1>
           <div className="flex items-center space-x-4">
             <button
@@ -434,67 +445,71 @@ const MedicalImageConverter = () => {
               {isDarkMode ? (
                 <>
                   <Sun size={16} className="mr-2" />
-                  Light Mode
+                  {truncateText('Light Mode', 10)}
                 </>
               ) : (
                 <>
                   <Moon size={16} className="mr-2" />
-                  Dark Mode
+                  {truncateText('Dark Mode', 10)}
                 </>
               )}
             </button>
-          <div className="relative">
-            <button 
-              className="flex items-center space-x-2 focus:outline-none"
-              onClick={() => setShowDropdown(!showDropdown)}
-            >
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                <User size={18} />
-              </div>
-              <span className="text-sm font-medium">{currentUser?.email.split('@')[0]}</span>
-            </button>
-            
-            {showDropdown && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium">{currentUser?.email}</p>
+            <div className="relative">
+              <button 
+                className="flex items-center space-x-2 focus:outline-none"
+                onClick={() => setShowDropdown(!showDropdown)}
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                  <User size={18} />
                 </div>
-                <button 
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  onClick={() => navigate('/history')}
-                >
-                  <History size={16} className="mr-3 text-gray-500" />
-                  History
-                </button>
-                <button 
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  onClick={() => navigate('/bookmark')}
-                >
-                  <Bookmark size={16} className="mr-3 text-gray-500" />
-                  Bookmarks
-                </button>
-                <button 
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  onClick={() => navigate('/settings')}
-                >
-                  <Settings size={16} className="mr-3 text-gray-500" />
-                  Settings
-                </button>
-                <div className="border-t border-gray-100">
+                <span className="text-sm font-medium">
+                  {truncateText(currentUser?.email.split('@')[0], 8)}
+                </span>
+              </button>
+              
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium">
+                      {truncateText(currentUser?.email, 20)}
+                    </p>
+                  </div>
                   <button 
-                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                    onClick={handleLogout}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => navigate('/history')}
                   >
-                    <LogOut size={16} className="mr-3" />
-                    Sign out
+                    <History size={16} className="mr-3 text-gray-500" />
+                    {truncateText('History', 10)}
                   </button>
+                  <button 
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => navigate('/bookmark')}
+                  >
+                    <Bookmark size={16} className="mr-3 text-gray-500" />
+                    {truncateText('Bookmarks', 10)}
+                  </button>
+                  <button 
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => navigate('/settings')}
+                  >
+                    <Settings size={16} className="mr-3 text-gray-500" />
+                    {truncateText('Settings', 10)}
+                  </button>
+                  <div className="border-t border-gray-100">
+                    <button 
+                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+                      onClick={handleLogout}
+                    >
+                      <LogOut size={16} className="mr-3" />
+                      {truncateText('Sign out', 10)}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
 
       {/* Main Content */}
       <main className="flex-grow py-8 px-4 bg-gray-50 dark:bg-gray-900">
@@ -540,16 +555,20 @@ const MedicalImageConverter = () => {
             {activeTab === 'conversion' && (
               <>
                 <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">MRI Modality Conversion</h2>
-                  <p className="text-gray-600">Transform between T1, T2, and PD MRI modalities using our AI model</p>
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                    MRI Modality Conversion
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Transform between T1, T2, and PD MRI modalities using our AI model
+                  </p>
                 </div>
 
                 {/* Conversion Controls */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Conversion Type</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Conversion Type</label>
                     <select 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       value={conversionType}
                       onChange={(e) => setConversionType(e.target.value)}
                     >
@@ -561,10 +580,11 @@ const MedicalImageConverter = () => {
                     </select>
                   </div>
 
+                  {/* Output Format */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Output Format</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Output Format</label>
                     <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100"
                       value={imageFormat}
                       onChange={e => setImageFormat(e.target.value)}
                     >
@@ -576,10 +596,11 @@ const MedicalImageConverter = () => {
                     </select>
                   </div>
 
+                  {/* File Upload + Convert Button */}
                   <div className="flex items-end space-x-3">
                     <label className="flex-1">
                       <span className="sr-only">Upload files</span>
-                      <div className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
+                      <div className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-100 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                         <Upload size={16} className="mr-2" />
                         Select Files
                         <input 
@@ -606,17 +627,14 @@ const MedicalImageConverter = () => {
                   </div>
                 </div>
 
+                {/* Error Message */}
                 {error && (
-                  <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400">
+                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-900 border-l-4 border-red-400 dark:border-red-600 text-red-700 dark:text-red-200">
                     <div className="flex">
-                      <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm text-red-700">{error}</p>
-                      </div>
+                      <svg className="h-5 w-5 mr-3 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-sm">{error}</p>
                     </div>
                   </div>
                 )}
@@ -624,12 +642,13 @@ const MedicalImageConverter = () => {
                 {/* Image Preview Area */}
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="rounded-lg border border-gray-200 overflow-hidden">
-                      <div className="bg-gray-50 p-3 border-b border-gray-200">
-                        <h3 className="text-sm font-medium text-gray-700">Input Image</h3>
+                    {/* Input Image */}
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+                      <div className="bg-gray-50 dark:bg-gray-700 p-3 border-b border-gray-200 dark:border-gray-600">
+                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200">Input Image</h3>
                       </div>
                       <div 
-                        className="h-64 bg-gray-50 flex items-center justify-center"
+                        className="h-64 bg-gray-50 dark:bg-gray-800 flex items-center justify-center"
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                       >
@@ -646,7 +665,7 @@ const MedicalImageConverter = () => {
                             className="max-w-full max-h-full object-contain opacity-70" 
                           />
                         ) : (
-                          <div className="text-center p-4 text-gray-500">
+                          <div className="text-center p-4 text-gray-500 dark:text-gray-400">
                             <Upload size={32} className="mx-auto mb-3" />
                             <p>Drag and drop or select files</p>
                             <p className="text-xs mt-1">Supports: JPG, PNG, NIfTI</p>
@@ -655,24 +674,38 @@ const MedicalImageConverter = () => {
                       </div>
                     </div>
 
-                    <div className="rounded-lg border border-gray-200 overflow-hidden">
-                      <div className="bg-gray-50 p-3 border-b border-gray-200">
-                        <h3 className="text-sm font-medium text-gray-700">Output Image</h3>
+                    {/* Output Image */}
+                    <div className="rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+                      <div className="bg-gray-50 dark:bg-gray-700 p-3 border-b border-gray-200 dark:border-gray-600">
+                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200">Output Image</h3>
                       </div>
-                      <div className="h-64 bg-gray-50 flex items-center justify-center">
+                      <div className="h-64 bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
                         {isLoading ? (
-                          <div className="text-center text-gray-500">
+                          <div className="text-center text-gray-500 dark:text-gray-400">
                             <RefreshCw size={32} className="mx-auto mb-3 animate-spin" />
                             <p>Processing image...</p>
                           </div>
                         ) : outputImages[currentImageIndex] ? (
-                          <img 
-                            src={outputImages[currentImageIndex]} 
-                            alt="Output" 
-                            className="max-w-full max-h-full object-contain" 
-                          />
+                          conversionType === 'ixi-segmentation' && Array.isArray(outputImages[currentImageIndex]) ? (
+                            <div className="grid grid-cols-2 gap-2">
+                              {outputImages[currentImageIndex].map((url, idx) => (
+                                <img
+                                  key={idx}
+                                  src={url}
+                                  alt={`Tissue ${idx + 1}`}
+                                  className="object-contain border border-gray-600 rounded"
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <img 
+                              src={outputImages[currentImageIndex]} 
+                              alt="Output" 
+                              className="max-w-full max-h-full object-contain" 
+                            />
+                          )
                         ) : (
-                          <div className="text-center p-4 text-gray-400">
+                          <div className="text-center p-4 text-gray-400 dark:text-gray-500">
                             <p>Converted image will appear here</p>
                           </div>
                         )}
@@ -1105,19 +1138,19 @@ const MedicalImageConverter = () => {
       <footer className="bg-white py-4 px-6 border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            © 2025 MDS16. Monash University. For research use only.
+            {truncateText('© 2025 MDS16. Monash University. For research use only.', 30)}
           </p>
           <div className="mt-2 md:mt-0">
             <button className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-              Terms
+              {truncateText('Terms', 5)}
             </button>
             <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>
             <button className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-              Privacy
+              {truncateText('Privacy', 5)}
             </button>
             <span className="mx-2 text-gray-300 dark:text-gray-600">•</span>
             <button className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-              Help
+              {truncateText('Help', 5)}
             </button>
           </div>
         </div>
