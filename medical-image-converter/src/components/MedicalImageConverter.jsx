@@ -435,7 +435,7 @@ const MedicalImageConverter = () => {
       <header className="bg-white shadow-sm py-4 px-6 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-xl font-semibold text-blue-600 dark:text-blue-400">
-            {truncateText('Mirage. Your Multi-Modality Translation & Synthesis Platform.', 30)}
+            {truncateText('Mirage. Your Multi-Modality Translation & Synthesis Platform.', 70)}
           </h1>
           <div className="flex items-center space-x-4">
             <button
